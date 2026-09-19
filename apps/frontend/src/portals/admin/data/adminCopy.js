@@ -76,6 +76,7 @@ export const adminCopy = {
       reject: 'Reject',
       frontendNote: 'Preview actions update this view only.',
       empty: 'All verification requests have been reviewed.',
+      emptyDescription: 'New doctor and laboratory submissions will appear here for a trust review.',
     },
     activity: {
       eyebrow: 'Platform activity',
@@ -177,6 +178,7 @@ export const adminCopy = {
       reject: 'প্রত্যাখ্যান',
       frontendNote: 'প্রিভিউ অ্যাকশন শুধু এই ভিউ আপডেট করে।',
       empty: 'সব যাচাইকরণ অনুরোধ পর্যালোচনা করা হয়েছে।',
+      emptyDescription: 'নতুন ডাক্তার ও ল্যাবরেটরির আবেদন আস্থা পর্যালোচনার জন্য এখানে দেখা যাবে।',
     },
     activity: {
       eyebrow: 'প্ল্যাটফর্ম কার্যক্রম',

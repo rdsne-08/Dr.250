@@ -1,11 +1,43 @@
 import { CheckCircle2, FileText, Send, ShieldCheck, UploadCloud } from 'lucide-react';
 import { useId, useState } from 'react';
 
-import { Button, Card, Input } from '../../../components/ui/index.js';
+import { Button, Card, Input, Notification } from '../../../components/ui/index.js';
+import { labService } from '../../../services/labService.js';
 
 export function ReportUpload({ copy }) {
   const fileInputId = useId();
-  const [fileName, setFileName] = useState('');
+  const [file, setFile] = useState(null);
+  const [patientId, setPatientId] = useState('');
+  const [testType, setTestType] = useState('');
+  const [note, setNote] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notification, setNotification] = useState(null);
+
+  function updateFile(nextFile) {
+    setFile(nextFile);
+    setNotification(null);
+  }
+
+  async function handleSubmit() {
+    setNotification(null);
+
+    if (!confirmed) {
+      setNotification('error');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await labService.uploadReport({ file, patientId, testType, note });
+      setNotification('success');
+    } catch {
+      setNotification('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <section id="report-upload" className="scroll-mt-24" aria-labelledby="report-upload-title">
@@ -20,6 +52,17 @@ export function ReportUpload({ copy }) {
           <p className="mt-2 max-w-xl text-sm leading-6 text-ink-500">{copy.upload.description}</p>
         </div>
 
+        {notification ? (
+          <Notification
+            className="mt-5"
+            variant={notification}
+            title={notification === 'success' ? copy.upload.successTitle : copy.upload.errorTitle}
+            message={notification === 'success' ? copy.upload.successMessage : copy.upload.errorMessage}
+            dismissLabel={copy.upload.dismiss}
+            onDismiss={() => setNotification(null)}
+          />
+        ) : null}
+
         <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(16rem,0.8fr)_minmax(20rem,1.2fr)]">
           <div>
             <label
@@ -27,25 +70,25 @@ export function ReportUpload({ copy }) {
               className="group flex min-h-64 cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-medical-300 bg-medical-50/60 px-5 text-center transition hover:border-medical-500 hover:bg-medical-50 focus-within:ring-4 focus-within:ring-medical-100"
             >
               <span className="grid size-14 place-items-center rounded-2xl bg-white text-medical-700 shadow-card transition group-hover:-translate-y-1">
-                {fileName ? <FileText className="size-6" aria-hidden="true" /> : <UploadCloud className="size-6" aria-hidden="true" />}
+                {file ? <FileText className="size-6" aria-hidden="true" /> : <UploadCloud className="size-6" aria-hidden="true" />}
               </span>
               <span className="mt-4 text-sm font-bold text-ink-900">
-                {fileName ? copy.upload.selectedFile : copy.upload.fileTitle}
+                {file ? copy.upload.selectedFile : copy.upload.fileTitle}
               </span>
-              {fileName ? (
-                <span className="mt-2 max-w-full truncate text-xs font-semibold text-medical-700">{fileName}</span>
+              {file ? (
+                <span className="mt-2 max-w-full truncate text-xs font-semibold text-medical-700">{file.name}</span>
               ) : (
                 <span className="mt-2 text-xs leading-5 text-ink-500">{copy.upload.fileHint}</span>
               )}
               <span className="mt-4 rounded-full border border-medical-200 bg-white px-4 py-2 text-xs font-bold text-medical-800 shadow-card">
-                {fileName ? copy.upload.replaceFile : copy.upload.chooseFile}
+                {file ? copy.upload.replaceFile : copy.upload.chooseFile}
               </span>
               <input
                 id={fileInputId}
                 className="sr-only"
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                onChange={(event) => setFileName(event.target.files?.[0]?.name ?? '')}
+                onChange={(event) => updateFile(event.target.files?.[0] ?? null)}
               />
             </label>
           </div>
@@ -57,14 +100,26 @@ export function ReportUpload({ copy }) {
             </h3>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Input label={copy.upload.patientLabel} placeholder={copy.upload.patientPlaceholder} />
+              <Input
+                label={copy.upload.patientLabel}
+                placeholder={copy.upload.patientPlaceholder}
+                value={patientId}
+                onChange={(event) => {
+                  setPatientId(event.target.value);
+                  setNotification(null);
+                }}
+              />
               <div>
                 <label className="mb-2 block text-sm font-semibold text-ink-800" htmlFor="lab-test-type">
                   {copy.upload.testLabel}
                 </label>
                 <select
                   id="lab-test-type"
-                  defaultValue=""
+                  value={testType}
+                  onChange={(event) => {
+                    setTestType(event.target.value);
+                    setNotification(null);
+                  }}
                   className="min-h-12 w-full rounded-2xl border border-ink-100 bg-white px-4 text-base text-ink-900 outline-none transition focus:border-medical-500 focus:ring-4 focus:ring-medical-100"
                 >
                   <option value="" disabled>{copy.upload.testPlaceholder}</option>
@@ -83,11 +138,21 @@ export function ReportUpload({ copy }) {
                 id="lab-report-note"
                 className="min-h-28 w-full resize-y rounded-2xl border border-ink-100 bg-white px-4 py-3 text-sm leading-6 text-ink-900 outline-none transition placeholder:text-ink-300 focus:border-medical-500 focus:ring-4 focus:ring-medical-100"
                 placeholder={copy.upload.notesPlaceholder}
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
               />
             </div>
 
             <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-canvas p-3.5 text-xs font-semibold leading-5 text-ink-600">
-              <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-health-600" />
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 accent-health-600"
+                checked={confirmed}
+                onChange={(event) => {
+                  setConfirmed(event.target.checked);
+                  setNotification(null);
+                }}
+              />
               <span>{copy.upload.consent}</span>
             </label>
 
@@ -96,8 +161,9 @@ export function ReportUpload({ copy }) {
                 <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-health-600" aria-hidden="true" />
                 {copy.upload.frontendNote}
               </p>
-              <Button className="shrink-0" size="sm">
-                {fileName ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
+              <Button className="shrink-0" size="sm" loading={isSubmitting} onClick={handleSubmit}>
+                {!isSubmitting && file ? <CheckCircle2 className="size-4" aria-hidden="true" /> : null}
+                {!isSubmitting && !file ? <Send className="size-4" aria-hidden="true" /> : null}
                 {copy.upload.submit}
               </Button>
             </div>

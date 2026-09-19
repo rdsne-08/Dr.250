@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { Avatar, Badge, Button, Card } from '../../../components/ui/index.js';
+import { Avatar, Badge, Button, Card, EmptyState } from '../../../components/ui/index.js';
 
 function format(template, values) {
   return Object.entries(values).reduce(
@@ -47,8 +47,16 @@ export function VerificationCenter({ copy, requests }) {
           </Badge>
         </div>
 
-        <div className="mt-6 grid gap-3">
-          {requests.map((request, index) => {
+        {requests.length === 0 ? (
+          <EmptyState
+            className="mt-6 min-h-56 shadow-none"
+            icon={ShieldCheck}
+            title={copy.verification.empty}
+            description={copy.verification.emptyDescription}
+          />
+        ) : (
+          <div className="mt-6 grid gap-3">
+            {requests.map((request, index) => {
             const status = decisions[request.id] ?? request.status;
             const TypeIcon = request.type === 'doctor' ? Stethoscope : Building2;
             const isPending = status === 'pending';
@@ -119,8 +127,9 @@ export function VerificationCenter({ copy, requests }) {
                 </div>
               </article>
             );
-          })}
-        </div>
+            })}
+          </div>
+        )}
 
         <p className="mt-4 flex items-center gap-2 text-[0.68rem] font-semibold text-ink-400">
           <ShieldCheck className="size-3.5 text-health-600" aria-hidden="true" />

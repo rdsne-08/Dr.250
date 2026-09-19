@@ -105,6 +105,13 @@ export const doctorCopy = {
       review: 'Review source context',
       safety: 'Assistance only · Sources stay linked · No autonomous decisions',
     },
+    states: {
+      noAppointmentsTitle: 'No appointments in this queue',
+      noAppointmentsBody: 'New consultations will appear here when they are scheduled.',
+      noPatientsTitle: 'No patients found',
+      noPatientsBody: 'Authorized patient records will appear here when access is available.',
+      clearSearch: 'Clear the search or choose another filter.',
+    },
   },
   bn: {
     languageName: 'English',
@@ -211,6 +218,13 @@ export const doctorCopy = {
       checks: ['ওষুধের তালিকা মিলেছে', 'অ্যালার্জি স্ট্যাটাস নিশ্চিত', 'সাম্প্রতিক ফলাফল একত্র করা'],
       review: 'উৎস তথ্য পর্যালোচনা',
       safety: 'শুধু সহায়তা · উৎস সংযুক্ত থাকে · স্বয়ংক্রিয় সিদ্ধান্ত নয়',
+    },
+    states: {
+      noAppointmentsTitle: 'এই সারিতে কোনো অ্যাপয়েন্টমেন্ট নেই',
+      noAppointmentsBody: 'নতুন পরামর্শ নির্ধারিত হলে এখানে দেখা যাবে।',
+      noPatientsTitle: 'কোনো রোগী পাওয়া যায়নি',
+      noPatientsBody: 'অনুমোদিত অ্যাক্সেস পাওয়া গেলে রোগীর রেকর্ড এখানে দেখা যাবে।',
+      clearSearch: 'সার্চ মুছুন অথবা অন্য ফিল্টার বেছে নিন।',
     },
   },
 };

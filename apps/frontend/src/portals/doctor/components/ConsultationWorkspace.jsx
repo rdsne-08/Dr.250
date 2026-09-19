@@ -10,7 +10,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 
-import { Avatar, Badge, Button, Card } from '../../../components/ui/index.js';
+import { Avatar, Badge, Button, Card, EmptyState } from '../../../components/ui/index.js';
 
 function format(template, values) {
   return Object.entries(values).reduce(
@@ -46,8 +46,16 @@ export function ConsultationWorkspace({ appointments, copy }) {
             </Button>
           </div>
 
-          <div className="mt-5 space-y-3">
-            {appointments.slice(0, 3).map((appointment) => {
+          {appointments.length === 0 ? (
+            <EmptyState
+              className="mt-5 min-h-56 shadow-none"
+              icon={CalendarDays}
+              title={copy.states.noAppointmentsTitle}
+              description={copy.states.noAppointmentsBody}
+            />
+          ) : (
+            <div className="mt-5 space-y-3">
+              {appointments.slice(0, 3).map((appointment) => {
               const ModeIcon = appointment.mode === 'video' ? Laptop : MapPin;
 
               return (
@@ -85,13 +93,16 @@ export function ConsultationWorkspace({ appointments, copy }) {
                   </div>
                 </article>
               );
-            })}
-          </div>
+              })}
+            </div>
+          )}
 
-          <Button className="mt-4 w-full sm:hidden" variant="ghost" size="sm">
-            {copy.consultation.allAppointments}
-            <ArrowRight className="size-4" aria-hidden="true" />
-          </Button>
+          {appointments.length > 0 ? (
+            <Button className="mt-4 w-full sm:hidden" variant="ghost" size="sm">
+              {copy.consultation.allAppointments}
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Button>
+          ) : null}
         </Card>
 
         <Card id="prescription-draft" className="scroll-mt-24 overflow-hidden p-5 sm:p-6">

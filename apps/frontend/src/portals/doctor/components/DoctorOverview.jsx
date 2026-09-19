@@ -10,7 +10,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 
-import { Avatar, Badge, Button, Card } from '../../../components/ui/index.js';
+import { Avatar, Badge, Button, Card, EmptyState } from '../../../components/ui/index.js';
 
 const statIcons = {
   patients: UsersRound,
@@ -104,41 +104,54 @@ export function DoctorOverview({ appointments, copy, doctor, stats }) {
                   {copy.overview.scheduleLabel}
                 </p>
                 <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em]">
-                  {copy.overview.scheduleCount}
+                  {currentAppointment ? copy.overview.scheduleCount : copy.states.noAppointmentsTitle}
                 </h2>
               </div>
-              <Badge className="border-white/10 bg-white/10 text-white" variant="neutral">
-                <Clock3 className="size-3.5" aria-hidden="true" />
-                {currentAppointment.time}
-              </Badge>
+              {currentAppointment ? (
+                <Badge className="border-white/10 bg-white/10 text-white" variant="neutral">
+                  <Clock3 className="size-3.5" aria-hidden="true" />
+                  {currentAppointment.time}
+                </Badge>
+              ) : null}
             </div>
 
-            <div className="mt-7 flex flex-col gap-5 rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm sm:flex-row sm:items-center">
-              <Avatar className="bg-health-200 text-health-900" name={currentAppointment.patientName} size="lg" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-health-200">{copy.overview.nextPatient}</p>
-                <h3 className="mt-1 text-xl font-bold">{currentAppointment.patientName}</h3>
-                <p className="mt-1 text-sm text-white/65">
-                  {format(copy.overview.age, { age: currentAppointment.age })} · {currentAppointment.reason}
-                </p>
-              </div>
-              <Button className="shrink-0 border-white/20 bg-white text-ink-950 hover:bg-health-50" variant="secondary" size="sm">
-                {copy.overview.openRecord}
-                <ArrowUpRight className="size-4" aria-hidden="true" />
-              </Button>
-            </div>
+            {currentAppointment ? (
+              <>
+                <div className="mt-7 flex flex-col gap-5 rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm sm:flex-row sm:items-center">
+                  <Avatar className="bg-health-200 text-health-900" name={currentAppointment.patientName} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-health-200">{copy.overview.nextPatient}</p>
+                    <h3 className="mt-1 text-xl font-bold">{currentAppointment.patientName}</h3>
+                    <p className="mt-1 text-sm text-white/65">
+                      {format(copy.overview.age, { age: currentAppointment.age })} · {currentAppointment.reason}
+                    </p>
+                  </div>
+                  <Button className="shrink-0 border-white/20 bg-white text-ink-950 hover:bg-health-50" variant="secondary" size="sm">
+                    {copy.overview.openRecord}
+                    <ArrowUpRight className="size-4" aria-hidden="true" />
+                  </Button>
+                </div>
 
-            <div className="mt-6">
-              <div className="flex items-center justify-between gap-4 text-xs font-semibold">
-                <span className="text-white/70">{copy.overview.queueProgress}</span>
-                <span className="text-health-200">
-                  {copy.overview.completed} · {copy.overview.remaining}
-                </span>
-              </div>
-              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-1/4 rounded-full bg-gradient-to-r from-health-300 to-medical-300" />
-              </div>
-            </div>
+                <div className="mt-6">
+                  <div className="flex items-center justify-between gap-4 text-xs font-semibold">
+                    <span className="text-white/70">{copy.overview.queueProgress}</span>
+                    <span className="text-health-200">
+                      {copy.overview.completed} · {copy.overview.remaining}
+                    </span>
+                  </div>
+                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full w-1/4 rounded-full bg-gradient-to-r from-health-300 to-medical-300" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <EmptyState
+                className="mt-6 min-h-52 border-white/10 bg-white/[0.07] shadow-none"
+                icon={CalendarCheck2}
+                title={copy.states.noAppointmentsTitle}
+                description={copy.states.noAppointmentsBody}
+              />
+            )}
           </div>
         </Card>
       </div>

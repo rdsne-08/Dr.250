@@ -1,13 +1,17 @@
 import { useMemo } from 'react';
 
+import { authCopy } from '../../../components/auth/authCopy.js';
+import { ErrorState } from '../../../components/feedback/ErrorState.jsx';
+import { LoadingScreen } from '../../../components/feedback/LoadingScreen.jsx';
+import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
+import { doctorService } from '../../../services/doctorService.js';
 import { ClinicalAssistant } from '../components/ClinicalAssistant.jsx';
 import { ConsultationWorkspace } from '../components/ConsultationWorkspace.jsx';
 import { DoctorLayout } from '../components/DoctorLayout.jsx';
 import { DoctorOverview } from '../components/DoctorOverview.jsx';
 import { PatientManagement } from '../components/PatientManagement.jsx';
 import { doctorCopy } from '../data/doctorCopy.js';
-import { doctorData } from '../data/doctorData.js';
 
 function localize(value, language) {
   return typeof value === 'object' && value !== null && language in value
@@ -18,28 +22,34 @@ function localize(value, language) {
 export function DoctorPortalPage() {
   const { language, toggleLanguage } = useLanguage();
   const copy = doctorCopy[language];
+  const stateCopy = authCopy[language].portalStates;
+  const { data: sourceData, error, isLoading, reload } = useAsyncResource(
+    doctorService.getDashboard,
+  );
 
   const localizedData = useMemo(() => {
+    if (!sourceData) return null;
+
     const numberFormatter = new Intl.NumberFormat(language === 'bn' ? 'bn-BD' : 'en-US');
 
     return {
-      ...doctorData,
+      ...sourceData,
       doctor: {
-        ...doctorData.doctor,
-        name: localize(doctorData.doctor.name, language),
-        specialty: localize(doctorData.doctor.specialty, language),
+        ...sourceData.doctor,
+        name: localize(sourceData.doctor.name, language),
+        specialty: localize(sourceData.doctor.specialty, language),
       },
-      stats: doctorData.stats.map((stat) => ({
+      stats: sourceData.stats.map((stat) => ({
         ...stat,
         value: numberFormatter.format(stat.value),
       })),
-      appointments: doctorData.appointments.map((appointment) => ({
+      appointments: sourceData.appointments.map((appointment) => ({
         ...appointment,
         patientName: localize(appointment.patientName, language),
         reason: localize(appointment.reason, language),
         age: numberFormatter.format(appointment.age),
       })),
-      patients: doctorData.patients.map((patient) => ({
+      patients: sourceData.patients.map((patient) => ({
         ...patient,
         name: localize(patient.name, language),
         age: numberFormatter.format(patient.age),
@@ -54,7 +64,19 @@ export function DoctorPortalPage() {
         })),
       })),
     };
-  }, [language]);
+  }, [language, sourceData]);
+
+  if (isLoading) return <LoadingScreen label={stateCopy.loading} />;
+  if (error || !localizedData) {
+    return (
+      <ErrorState
+        title={stateCopy.errorTitle}
+        description={stateCopy.errorBody}
+        actionLabel={stateCopy.retry}
+        onRetry={reload}
+      />
+    );
+  }
 
   return (
     <DoctorLayout

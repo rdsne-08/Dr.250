@@ -1,6 +1,11 @@
 import { useMemo } from 'react';
 
+import { authCopy } from '../../../components/auth/authCopy.js';
+import { ErrorState } from '../../../components/feedback/ErrorState.jsx';
+import { LoadingScreen } from '../../../components/feedback/LoadingScreen.jsx';
+import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
+import { adminService } from '../../../services/adminService.js';
 import { AdminLayout } from '../components/AdminLayout.jsx';
 import { AdminOverview } from '../components/AdminOverview.jsx';
 import { PlatformActivity } from '../components/PlatformActivity.jsx';
@@ -8,7 +13,6 @@ import { SystemHealth } from '../components/SystemHealth.jsx';
 import { UserManagement } from '../components/UserManagement.jsx';
 import { VerificationCenter } from '../components/VerificationCenter.jsx';
 import { adminCopy } from '../data/adminCopy.js';
-import { adminData } from '../data/adminData.js';
 
 function localize(value, language) {
   return typeof value === 'object' && value !== null && language in value
@@ -27,44 +31,62 @@ function localizePeople(people, language) {
 export function AdminDashboard() {
   const { language, toggleLanguage } = useLanguage();
   const copy = adminCopy[language];
+  const stateCopy = authCopy[language].portalStates;
+  const { data: sourceData, error, isLoading, reload } = useAsyncResource(
+    adminService.getDashboard,
+  );
 
   const localizedData = useMemo(() => {
+    if (!sourceData) return null;
+
     const numberFormatter = new Intl.NumberFormat(language === 'bn' ? 'bn-BD' : 'en-US');
 
     return {
       admin: {
-        ...adminData.admin,
-        name: localize(adminData.admin.name, language),
-        role: localize(adminData.admin.role, language),
-        shift: localize(adminData.admin.shift, language),
+        ...sourceData.admin,
+        name: localize(sourceData.admin.name, language),
+        role: localize(sourceData.admin.role, language),
+        shift: localize(sourceData.admin.shift, language),
       },
       platform: {
-        ...adminData.platform,
-        reviewedAt: localize(adminData.platform.reviewedAt, language),
+        ...sourceData.platform,
+        reviewedAt: localize(sourceData.platform.reviewedAt, language),
       },
-      overview: adminData.overview.map((item) => ({
+      overview: sourceData.overview.map((item) => ({
         ...item,
         value: numberFormatter.format(item.value),
         detail: numberFormatter.format(item.detail),
       })),
-      users: localizePeople(adminData.users, language),
-      doctors: localizePeople(adminData.doctors, language),
-      labs: localizePeople(adminData.labs, language),
-      verificationRequests: adminData.verificationRequests.map((request) => ({
+      users: localizePeople(sourceData.users, language),
+      doctors: localizePeople(sourceData.doctors, language),
+      labs: localizePeople(sourceData.labs, language),
+      verificationRequests: sourceData.verificationRequests.map((request) => ({
         ...request,
         name: localize(request.name, language),
         qualification: localize(request.qualification, language),
         submittedAt: localize(request.submittedAt, language),
         documents: numberFormatter.format(request.documents),
       })),
-      activity: adminData.activity.map((event) => ({
+      activity: sourceData.activity.map((event) => ({
         ...event,
         time: localize(event.time, language),
         actor: localize(event.actor, language),
       })),
-      systemHealth: adminData.systemHealth,
+      systemHealth: sourceData.systemHealth,
     };
-  }, [language]);
+  }, [language, sourceData]);
+
+  if (isLoading) return <LoadingScreen label={stateCopy.loading} />;
+  if (error || !localizedData) {
+    return (
+      <ErrorState
+        title={stateCopy.errorTitle}
+        description={stateCopy.errorBody}
+        actionLabel={stateCopy.retry}
+        onRetry={reload}
+      />
+    );
+  }
 
   return (
     <AdminLayout admin={localizedData.admin} copy={copy} onToggleLanguage={toggleLanguage}>

@@ -1,6 +1,6 @@
 import { ArrowRight, FileHeart, FlaskConical, Pill, Stethoscope } from 'lucide-react';
 
-import { Button, Card } from '../../../components/ui/index.js';
+import { Button, Card, EmptyState } from '../../../components/ui/index.js';
 
 const eventIcons = {
   report: FlaskConical,
@@ -24,9 +24,17 @@ export function HealthTimeline({ copy, events }) {
         </div>
       </div>
 
-      <div className="relative mt-7 space-y-1">
-        <div className="absolute bottom-8 left-5 top-5 w-px bg-health-100" aria-hidden="true" />
-        {events.map((event, index) => {
+      {events.length === 0 ? (
+        <EmptyState
+          className="mt-6 min-h-56 shadow-none"
+          icon={FileHeart}
+          title={copy.states.emptyTimelineTitle}
+          description={copy.states.emptyTimelineBody}
+        />
+      ) : (
+        <div className="relative mt-7 space-y-1">
+          <div className="absolute bottom-8 left-5 top-5 w-px bg-health-100" aria-hidden="true" />
+          {events.map((event, index) => {
           const eventCopy = copy.timeline.events[event.id];
           const Icon = eventIcons[event.type];
 
@@ -46,13 +54,16 @@ export function HealthTimeline({ copy, events }) {
               </div>
             </article>
           );
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
-      <Button className="mt-4" variant="ghost" size="sm">
-        {copy.timeline.viewAll}
-        <ArrowRight className="size-4" aria-hidden="true" />
-      </Button>
+      {events.length > 0 ? (
+        <Button className="mt-4" variant="ghost" size="sm">
+          {copy.timeline.viewAll}
+          <ArrowRight className="size-4" aria-hidden="true" />
+        </Button>
+      ) : null}
     </Card>
   );
 }

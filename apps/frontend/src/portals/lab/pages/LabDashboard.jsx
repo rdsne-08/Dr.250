@@ -1,6 +1,11 @@
 import { useMemo } from 'react';
 
+import { authCopy } from '../../../components/auth/authCopy.js';
+import { ErrorState } from '../../../components/feedback/ErrorState.jsx';
+import { LoadingScreen } from '../../../components/feedback/LoadingScreen.jsx';
+import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
+import { labService } from '../../../services/labService.js';
 import { DoctorRequests } from '../components/DoctorRequests.jsx';
 import { LabLayout } from '../components/LabLayout.jsx';
 import { LabOverview } from '../components/LabOverview.jsx';
@@ -8,7 +13,6 @@ import { ReportTimeline } from '../components/ReportTimeline.jsx';
 import { ReportUpload } from '../components/ReportUpload.jsx';
 import { TestManagement } from '../components/TestManagement.jsx';
 import { labCopy } from '../data/labCopy.js';
-import { labData } from '../data/labData.js';
 
 function localize(value, language) {
   return typeof value === 'object' && value !== null && language in value
@@ -19,23 +23,29 @@ function localize(value, language) {
 export function LabDashboard() {
   const { language, toggleLanguage } = useLanguage();
   const copy = labCopy[language];
+  const stateCopy = authCopy[language].portalStates;
+  const { data: sourceData, error, isLoading, reload } = useAsyncResource(
+    labService.getDashboard,
+  );
 
   const localizedData = useMemo(() => {
+    if (!sourceData) return null;
+
     const numberFormatter = new Intl.NumberFormat(language === 'bn' ? 'bn-BD' : 'en-US');
-    const patients = labData.patients.map((patient) => ({
+    const patients = sourceData.patients.map((patient) => ({
       ...patient,
       name: localize(patient.name, language),
       age: numberFormatter.format(patient.age),
       sex: localize(patient.sex, language),
     }));
-    const doctors = labData.doctors.map((doctor) => ({
+    const doctors = sourceData.doctors.map((doctor) => ({
       ...doctor,
       name: localize(doctor.name, language),
       specialty: localize(doctor.specialty, language),
     }));
     const patientById = Object.fromEntries(patients.map((patient) => [patient.id, patient]));
     const doctorById = Object.fromEntries(doctors.map((doctor) => [doctor.id, doctor]));
-    const tests = labData.tests.map((test) => ({
+    const tests = sourceData.tests.map((test) => ({
       ...test,
       name: localize(test.name, language),
       requestedAt: localize(test.requestedAt, language),
@@ -47,14 +57,14 @@ export function LabDashboard() {
 
     return {
       laboratory: {
-        ...labData.laboratory,
-        name: localize(labData.laboratory.name, language),
-        branch: localize(labData.laboratory.branch, language),
+        ...sourceData.laboratory,
+        name: localize(sourceData.laboratory.name, language),
+        branch: localize(sourceData.laboratory.branch, language),
       },
       workload: Object.fromEntries(
-        Object.entries(labData.workload).map(([key, value]) => [key, numberFormatter.format(value)]),
+        Object.entries(sourceData.workload).map(([key, value]) => [key, numberFormatter.format(value)]),
       ),
-      overview: labData.overview.map((item) => ({
+      overview: sourceData.overview.map((item) => ({
         ...item,
         value: numberFormatter.format(item.value),
         detail: numberFormatter.format(item.detail),
@@ -62,23 +72,35 @@ export function LabDashboard() {
       patients,
       doctors,
       tests,
-      reports: labData.reports.map((report) => ({
+      reports: sourceData.reports.map((report) => ({
         ...report,
         uploadedAt: localize(report.uploadedAt, language),
       })),
-      doctorRequests: labData.doctorRequests.map((request) => ({
+      doctorRequests: sourceData.doctorRequests.map((request) => ({
         ...request,
         doctor: doctorById[request.doctorId],
         patient: patientById[request.patientId],
         test: testById[request.testId],
       })),
-      reportTimeline: labData.reportTimeline.map((event) => ({
+      reportTimeline: sourceData.reportTimeline.map((event) => ({
         ...event,
         time: localize(event.time, language),
         patient: patientById[event.patientId],
       })),
     };
-  }, [language]);
+  }, [language, sourceData]);
+
+  if (isLoading) return <LoadingScreen label={stateCopy.loading} />;
+  if (error || !localizedData) {
+    return (
+      <ErrorState
+        title={stateCopy.errorTitle}
+        description={stateCopy.errorBody}
+        actionLabel={stateCopy.retry}
+        onRetry={reload}
+      />
+    );
+  }
 
   return (
     <LabLayout

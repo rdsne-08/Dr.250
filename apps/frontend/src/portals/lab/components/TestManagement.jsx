@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { Avatar, Badge, Button, Card } from '../../../components/ui/index.js';
+import { Avatar, Badge, Button, Card, EmptyState } from '../../../components/ui/index.js';
 import { cn } from '../../../lib/classNames.js';
 
 const filters = ['all', 'pending', 'processing', 'completed'];
@@ -153,10 +153,12 @@ export function TestManagement({ copy, tests }) {
           })}
 
           {visibleTests.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-ink-100 px-5 py-12 text-center">
-              <FlaskConical className="mx-auto size-6 text-ink-300" aria-hidden="true" />
-              <p className="mt-3 text-sm font-semibold text-ink-500">{copy.tests.noResults}</p>
-            </div>
+            <EmptyState
+              className="min-h-56 shadow-none"
+              icon={FlaskConical}
+              title={copy.tests.noResults}
+              description={copy.tests.emptyDescription}
+            />
           ) : null}
         </div>
       </Card>

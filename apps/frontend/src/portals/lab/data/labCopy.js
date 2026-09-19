@@ -64,6 +64,7 @@ export const labCopy = {
       priority: { urgent: 'Urgent', routine: 'Routine' },
       openTest: 'Open test',
       noResults: 'No requests in this stage.',
+      emptyDescription: 'Incoming tests will appear here as soon as a doctor submits a request.',
     },
     upload: {
       eyebrow: 'Report delivery',
@@ -85,6 +86,11 @@ export const labCopy = {
       consent: 'I have checked the patient and request details.',
       submit: 'Submit report',
       frontendNote: 'Preview only — no file is uploaded or stored.',
+      errorTitle: 'Report not ready to submit',
+      errorMessage: 'Choose a file, add the patient or request ID, select a test, and confirm the details.',
+      successTitle: 'Report prepared successfully',
+      successMessage: 'The mock report is ready for future API delivery.',
+      dismiss: 'Dismiss notification',
     },
     requests: {
       eyebrow: 'Care coordination',
@@ -171,6 +177,7 @@ export const labCopy = {
       priority: { urgent: 'জরুরি', routine: 'নিয়মিত' },
       openTest: 'টেস্ট খুলুন',
       noResults: 'এই ধাপে কোনো অনুরোধ নেই।',
+      emptyDescription: 'ডাক্তার অনুরোধ পাঠালে নতুন টেস্ট এখানে দেখা যাবে।',
     },
     upload: {
       eyebrow: 'রিপোর্ট প্রদান',
@@ -192,6 +199,11 @@ export const labCopy = {
       consent: 'আমি রোগী ও অনুরোধের তথ্য যাচাই করেছি।',
       submit: 'রিপোর্ট জমা দিন',
       frontendNote: 'শুধু প্রিভিউ — কোনো ফাইল আপলোড বা সংরক্ষণ করা হবে না।',
+      errorTitle: 'রিপোর্ট জমা দেওয়ার জন্য প্রস্তুত নয়',
+      errorMessage: 'ফাইল, রোগী বা অনুরোধ আইডি ও টেস্ট বেছে নিয়ে তথ্য নিশ্চিত করুন।',
+      successTitle: 'রিপোর্ট সফলভাবে প্রস্তুত',
+      successMessage: 'মক রিপোর্টটি ভবিষ্যৎ API ডেলিভারির জন্য প্রস্তুত।',
+      dismiss: 'নোটিফিকেশন বন্ধ করুন',
     },
     requests: {
       eyebrow: 'সেবা সমন্বয়',

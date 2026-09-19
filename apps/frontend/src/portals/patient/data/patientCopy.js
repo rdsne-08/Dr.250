@@ -131,6 +131,16 @@ export const patientCopy = {
       openAssistant: 'Talk to the assistant',
       safety: 'For understanding records—not replacing medical advice.',
     },
+    states: {
+      emptyRecordsTitle: 'No medical records yet',
+      emptyRecordsBody: 'Upload your first document to begin a clear, connected health history.',
+      emptyRecordsAction: 'Add a medical record',
+      noPrescriptionsTitle: 'No active prescriptions',
+      noPrescriptionsBody: 'Current prescriptions from your care team will appear here.',
+      noPrescriptionsAction: 'View health timeline',
+      emptyTimelineTitle: 'Your health timeline is ready',
+      emptyTimelineBody: 'Visits, reports, and record updates will appear here as they happen.',
+    },
   },
   bn: {
     languageName: 'English',
@@ -263,6 +273,16 @@ export const patientCopy = {
       },
       openAssistant: 'সহকারীর সঙ্গে কথা বলুন',
       safety: 'নথি বুঝতে সহায়তা করে—চিকিৎসকের পরামর্শের বিকল্প নয়।',
+    },
+    states: {
+      emptyRecordsTitle: 'এখনও কোনো মেডিকেল রেকর্ড নেই',
+      emptyRecordsBody: 'পরিষ্কার ও সংযুক্ত স্বাস্থ্য ইতিহাস শুরু করতে প্রথম নথি যোগ করুন।',
+      emptyRecordsAction: 'মেডিকেল রেকর্ড যোগ করুন',
+      noPrescriptionsTitle: 'কোনো সক্রিয় প্রেসক্রিপশন নেই',
+      noPrescriptionsBody: 'আপনার কেয়ার টিমের বর্তমান প্রেসক্রিপশন এখানে দেখা যাবে।',
+      noPrescriptionsAction: 'স্বাস্থ্য টাইমলাইন দেখুন',
+      emptyTimelineTitle: 'আপনার স্বাস্থ্য টাইমলাইন প্রস্তুত',
+      emptyTimelineBody: 'ভিজিট, রিপোর্ট ও রেকর্ড আপডেট হওয়ার সঙ্গে সঙ্গে এখানে দেখা যাবে।',
     },
   },
 };

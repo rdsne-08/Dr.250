@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { Avatar, Badge, Button, Card, Input } from '../../../components/ui/index.js';
+import { Avatar, Badge, Button, Card, EmptyState, Input } from '../../../components/ui/index.js';
 import { cn } from '../../../lib/classNames.js';
 
 const filters = ['all', 'followup', 'new', 'attention'];
@@ -49,6 +49,25 @@ export function PatientManagement({ copy, patients }) {
 
   const selectedPatient =
     patients.find((patient) => patient.id === selectedPatientId) ?? patients[0];
+
+  if (!selectedPatient) {
+    return (
+      <section id="patient-management" className="scroll-mt-24" aria-labelledby="patients-title">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-health-700">
+          {copy.patients.eyebrow}
+        </p>
+        <h2 id="patients-title" className="mt-2 text-2xl font-bold tracking-[-0.035em] text-ink-950 sm:text-3xl">
+          {copy.patients.title}
+        </h2>
+        <EmptyState
+          className="mt-6 shadow-card"
+          icon={UserRoundSearch}
+          title={copy.states.noPatientsTitle}
+          description={copy.states.noPatientsBody}
+        />
+      </section>
+    );
+  }
 
   return (
     <section id="patient-management" className="scroll-mt-24" aria-labelledby="patients-title">
@@ -152,10 +171,12 @@ export function PatientManagement({ copy, patients }) {
               })}
 
               {visiblePatients.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-ink-100 px-5 py-12 text-center">
-                  <Search className="mx-auto size-6 text-ink-300" aria-hidden="true" />
-                  <p className="mt-3 text-sm font-semibold text-ink-500">{copy.patients.noResults}</p>
-                </div>
+                <EmptyState
+                  className="min-h-56 shadow-none"
+                  icon={Search}
+                  title={copy.patients.noResults}
+                  description={copy.states.clearSearch}
+                />
               ) : null}
             </div>
           </div>

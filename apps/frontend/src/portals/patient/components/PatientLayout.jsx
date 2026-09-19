@@ -14,6 +14,7 @@ import {
 import { useState } from 'react';
 
 import { BrandMark } from '../../../components/layout/BrandMark.jsx';
+import { LogoutButton } from '../../../components/auth/LogoutButton.jsx';
 import { Avatar, Button, Modal } from '../../../components/ui/index.js';
 import { cn } from '../../../lib/classNames.js';
 
@@ -111,6 +112,7 @@ export function PatientLayout({ children, copy, onToggleLanguage, patient }) {
                   <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full border-2 border-white bg-health-500" />
                 </span>
               </Button>
+              <LogoutButton />
               <Avatar className="ml-1" name={patient.name} size="sm" />
             </div>
           </div>
