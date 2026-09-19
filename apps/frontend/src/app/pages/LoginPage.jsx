@@ -106,7 +106,7 @@ export function LoginPage() {
               type="password"
               autoComplete="current-password"
               required
-              minLength={6}
+              minLength={8}
               label={copy.shared.password}
               placeholder={copy.shared.passwordPlaceholder}
               value={form.password}

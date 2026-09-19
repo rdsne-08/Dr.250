@@ -1,6 +1,10 @@
-const LOCAL_SESSION_KEY = 'dr250-auth-session';
-const BROWSER_SESSION_KEY = 'dr250-auth-browser-session';
-const MOCK_DELAY = 450;
+import {
+  ApiError,
+  apiClient,
+  clearApiSession,
+  readApiSession,
+  storeApiSession,
+} from './apiClient.js';
 
 export const AUTH_ROLES = Object.freeze({
   PATIENT: 'PATIENT',
@@ -17,10 +21,10 @@ export const ROLE_HOME = Object.freeze({
 });
 
 export const AUTH_API_CONTRACT = Object.freeze({
-  login: '/auth/login',
-  register: '/auth/register',
-  logout: '/auth/logout',
-  session: '/auth/session',
+  login: '/api/auth/login',
+  register: '/api/auth/register',
+  logout: '/api/auth/logout',
+  session: '/api/auth/me',
 });
 
 export class AuthServiceError extends Error {
@@ -31,97 +35,85 @@ export class AuthServiceError extends Error {
   }
 }
 
-function wait(duration = MOCK_DELAY) {
-  return new Promise((resolve) => window.setTimeout(resolve, duration));
-}
-
-function parseSession(storage, key) {
-  const storedValue = storage.getItem(key);
-
-  if (!storedValue) return null;
-
-  try {
-    return JSON.parse(storedValue);
-  } catch {
-    storage.removeItem(key);
-    return null;
-  }
-}
-
-function readSession() {
-  return (
-    parseSession(window.localStorage, LOCAL_SESSION_KEY) ??
-    parseSession(window.sessionStorage, BROWSER_SESSION_KEY)
-  );
-}
-
-function clearStoredSession() {
-  window.localStorage.removeItem(LOCAL_SESSION_KEY);
-  window.sessionStorage.removeItem(BROWSER_SESSION_KEY);
-}
-
 function validateCredentials({ email, password, role }) {
   if (!email?.trim() || !email.includes('@')) {
     throw new AuthServiceError('Please enter a valid email address.', 'INVALID_EMAIL');
   }
 
-  if (!password || password.length < 6) {
-    throw new AuthServiceError('Password must contain at least 6 characters.', 'INVALID_PASSWORD');
+  if (!password || password.length < 8) {
+    throw new AuthServiceError('Password must contain at least 8 characters.', 'INVALID_PASSWORD');
   }
 
   if (!Object.values(AUTH_ROLES).includes(role)) {
     throw new AuthServiceError('Please choose a valid account role.', 'INVALID_ROLE');
   }
-
-  if (email.toLowerCase().includes('error') || password === 'wrongpass') {
-    throw new AuthServiceError('The email, password, or role does not match.', 'INVALID_CREDENTIALS');
-  }
 }
 
-function nameFromEmail(email) {
-  return email
-    .split('@')[0]
-    .split(/[._-]/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function createSession({ email, name, role }) {
+function normalizeUser({ profile, role, user }) {
   return {
-    user: {
-      id: `MOCK-${role}-${Date.now()}`,
-      name: name?.trim() || nameFromEmail(email),
-      email: email.trim().toLowerCase(),
-      role,
-    },
-    createdAt: new Date().toISOString(),
-    provider: 'mock',
+    id: profile?.user_id ?? user?.id ?? profile?.profile_id,
+    profileId: profile?.profile_id,
+    name: profile?.full_name ?? user?.full_name ?? '',
+    email: user?.email ?? profile?.email ?? '',
+    role: role ?? profile?.role ?? user?.role,
   };
 }
 
-function storeSession(session, remember) {
-  clearStoredSession();
-  const storage = remember ? window.localStorage : window.sessionStorage;
-  const key = remember ? LOCAL_SESSION_KEY : BROWSER_SESSION_KEY;
-  storage.setItem(key, JSON.stringify(session));
+function normalizeAuthError(error) {
+  if (error instanceof AuthServiceError) return error;
+  if (!(error instanceof ApiError)) return new AuthServiceError('Unable to authenticate right now.');
+
+  const code = error.status === 401
+    ? 'INVALID_CREDENTIALS'
+    : error.status === 409
+      ? 'ACCOUNT_EXISTS'
+      : error.code === 'NETWORK_ERROR'
+        ? 'NETWORK_ERROR'
+        : 'AUTH_ERROR';
+  return new AuthServiceError(error.message, code);
 }
 
 async function getSession() {
-  await wait(280);
-  return readSession();
+  if (!readApiSession()) return null;
+
+  try {
+    const payload = await apiClient.get(AUTH_API_CONTRACT.session);
+    return { user: normalizeUser(payload), provider: 'supabase' };
+  } catch (error) {
+    clearApiSession();
+    if (error instanceof ApiError && error.status === 401) return null;
+    throw normalizeAuthError(error);
+  }
 }
 
 async function login(credentials) {
-  await wait();
-  validateCredentials(credentials);
-  const session = createSession(credentials);
-  storeSession(session, credentials.remember);
-  return session;
+  try {
+    validateCredentials(credentials);
+    const payload = await apiClient.post(
+      AUTH_API_CONTRACT.login,
+      { email: credentials.email.trim(), password: credentials.password },
+      { auth: false },
+    );
+    const user = normalizeUser({ profile: payload.user, role: payload.role, user: payload.user });
+
+    if (user.role !== credentials.role) {
+      throw new AuthServiceError('The selected role does not match this account.', 'INVALID_CREDENTIALS');
+    }
+
+    storeApiSession({
+      accessToken: payload.access_token,
+      refreshToken: payload.refresh_token,
+      expiresIn: payload.expires_in,
+    }, credentials.remember);
+
+    return { user, provider: 'supabase' };
+  } catch (error) {
+    clearApiSession();
+    throw normalizeAuthError(error);
+  }
 }
 
 async function register(details) {
-  await wait(600);
   validateCredentials(details);
 
   if (!details.name?.trim()) {
@@ -132,19 +124,34 @@ async function register(details) {
     throw new AuthServiceError('Password confirmation does not match.', 'PASSWORD_MISMATCH');
   }
 
-  const session = createSession(details);
-  storeSession(session, details.remember ?? true);
-  return session;
+  try {
+    await apiClient.post(AUTH_API_CONTRACT.register, {
+      email: details.email.trim(),
+      full_name: details.name.trim(),
+      password: details.password,
+      role: details.role,
+    }, { auth: false });
+
+    return login({
+      email: details.email,
+      password: details.password,
+      remember: details.remember ?? true,
+      role: details.role,
+    });
+  } catch (error) {
+    throw normalizeAuthError(error);
+  }
 }
 
 async function logout() {
-  await wait(220);
-  clearStoredSession();
+  try {
+    if (readApiSession()) await apiClient.post(AUTH_API_CONTRACT.logout);
+  } catch {
+    // Local cleanup must still complete when the token is already expired or
+    // the authentication service is temporarily unavailable.
+  } finally {
+    clearApiSession();
+  }
 }
 
-export const authService = Object.freeze({
-  getSession,
-  login,
-  logout,
-  register,
-});
+export const authService = Object.freeze({ getSession, login, logout, register });

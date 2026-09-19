@@ -6,6 +6,7 @@ import { LoadingScreen } from '../../../components/feedback/LoadingScreen.jsx';
 import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
 import { doctorService } from '../../../services/doctorService.js';
+import { getApiErrorMessage } from '../../../services/apiErrorMessages.js';
 import { ClinicalAssistant } from '../components/ClinicalAssistant.jsx';
 import { ConsultationWorkspace } from '../components/ConsultationWorkspace.jsx';
 import { DoctorLayout } from '../components/DoctorLayout.jsx';
@@ -71,7 +72,7 @@ export function DoctorPortalPage() {
     return (
       <ErrorState
         title={stateCopy.errorTitle}
-        description={stateCopy.errorBody}
+        description={getApiErrorMessage(error, language, stateCopy.errorBody)}
         actionLabel={stateCopy.retry}
         onRetry={reload}
       />

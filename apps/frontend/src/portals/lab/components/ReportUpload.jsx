@@ -1,11 +1,12 @@
 import { CheckCircle2, FileText, Send, ShieldCheck, UploadCloud } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 import { Button, Card, Input, Notification } from '../../../components/ui/index.js';
 import { labService } from '../../../services/labService.js';
 
-export function ReportUpload({ copy }) {
+export function ReportUpload({ copy, onUploaded }) {
   const fileInputId = useId();
+  const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [patientId, setPatientId] = useState('');
   const [testType, setTestType] = useState('');
@@ -31,7 +32,14 @@ export function ReportUpload({ copy }) {
 
     try {
       await labService.uploadReport({ file, patientId, testType, note });
+      setFile(null);
+      setPatientId('');
+      setTestType('');
+      setNote('');
+      setConfirmed(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setNotification('success');
+      onUploaded?.();
     } catch {
       setNotification('error');
     } finally {
@@ -84,6 +92,7 @@ export function ReportUpload({ copy }) {
                 {file ? copy.upload.replaceFile : copy.upload.chooseFile}
               </span>
               <input
+                ref={fileInputRef}
                 id={fileInputId}
                 className="sr-only"
                 type="file"

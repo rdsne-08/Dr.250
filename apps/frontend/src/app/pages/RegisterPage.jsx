@@ -131,7 +131,7 @@ export function RegisterPage() {
               type="password"
               autoComplete="new-password"
               required
-              minLength={6}
+              minLength={8}
               label={copy.shared.password}
               placeholder={copy.shared.passwordPlaceholder}
               value={form.password}
@@ -145,7 +145,7 @@ export function RegisterPage() {
               type="password"
               autoComplete="new-password"
               required
-              minLength={6}
+              minLength={8}
               label={copy.register.confirmPassword}
               placeholder={copy.register.confirmPlaceholder}
               value={form.confirmPassword}

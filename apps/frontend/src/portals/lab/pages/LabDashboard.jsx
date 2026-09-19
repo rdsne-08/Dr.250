@@ -6,6 +6,7 @@ import { LoadingScreen } from '../../../components/feedback/LoadingScreen.jsx';
 import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
 import { labService } from '../../../services/labService.js';
+import { getApiErrorMessage } from '../../../services/apiErrorMessages.js';
 import { DoctorRequests } from '../components/DoctorRequests.jsx';
 import { LabLayout } from '../components/LabLayout.jsx';
 import { LabOverview } from '../components/LabOverview.jsx';
@@ -95,7 +96,7 @@ export function LabDashboard() {
     return (
       <ErrorState
         title={stateCopy.errorTitle}
-        description={stateCopy.errorBody}
+        description={getApiErrorMessage(error, language, stateCopy.errorBody)}
         actionLabel={stateCopy.retry}
         onRetry={reload}
       />
@@ -124,7 +125,7 @@ export function LabDashboard() {
         </div>
 
         <div className="mt-9 grid items-start gap-6 2xl:grid-cols-[minmax(0,1.4fr)_minmax(21rem,0.6fr)]">
-          <ReportUpload copy={copy} />
+          <ReportUpload copy={copy} onUploaded={reload} />
           <DoctorRequests copy={copy} requests={localizedData.doctorRequests} />
         </div>
 

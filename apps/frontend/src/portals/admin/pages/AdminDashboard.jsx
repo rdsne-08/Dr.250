@@ -6,6 +6,7 @@ import { LoadingScreen } from '../../../components/feedback/LoadingScreen.jsx';
 import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
 import { adminService } from '../../../services/adminService.js';
+import { getApiErrorMessage } from '../../../services/apiErrorMessages.js';
 import { AdminLayout } from '../components/AdminLayout.jsx';
 import { AdminOverview } from '../components/AdminOverview.jsx';
 import { PlatformActivity } from '../components/PlatformActivity.jsx';
@@ -81,7 +82,7 @@ export function AdminDashboard() {
     return (
       <ErrorState
         title={stateCopy.errorTitle}
-        description={stateCopy.errorBody}
+        description={getApiErrorMessage(error, language, stateCopy.errorBody)}
         actionLabel={stateCopy.retry}
         onRetry={reload}
       />

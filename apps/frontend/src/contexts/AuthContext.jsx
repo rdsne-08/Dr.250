@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { AUTH_EXPIRED_EVENT } from '../services/apiClient.js';
 import { authService } from '../services/authService.js';
 import { AuthContext } from './auth-context.js';
 
@@ -27,6 +28,17 @@ export function AuthProvider({ children }) {
     return () => {
       active = false;
     };
+  }, []);
+
+  useEffect(() => {
+    function handleExpiredSession() {
+      setUser(null);
+      setError(null);
+      setStatus('unauthenticated');
+    }
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
   }, []);
 
   const login = useCallback(async (credentials) => {

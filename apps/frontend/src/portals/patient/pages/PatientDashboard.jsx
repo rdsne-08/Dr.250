@@ -8,6 +8,7 @@ import { EmptyState } from '../../../components/ui/index.js';
 import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
 import { patientService } from '../../../services/patientService.js';
+import { getApiErrorMessage } from '../../../services/apiErrorMessages.js';
 import { AIAssistantCard } from '../components/AIAssistantCard.jsx';
 import { DoctorAccessCard } from '../components/DoctorAccessCard.jsx';
 import { HealthOverview } from '../components/HealthOverview.jsx';
@@ -60,7 +61,7 @@ export function PatientDashboard() {
     return (
       <ErrorState
         title={stateCopy.errorTitle}
-        description={stateCopy.errorBody}
+        description={getApiErrorMessage(error, language, stateCopy.errorBody)}
         actionLabel={stateCopy.retry}
         onRetry={reload}
       />
