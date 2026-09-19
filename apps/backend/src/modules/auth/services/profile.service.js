@@ -1,4 +1,4 @@
-import { pool } from '../../../database/pool.js';
+import { pool, query, withTransaction } from '../../../database/pool.js';
 
 const PROFILE_SELECT = `
   SELECT
@@ -15,25 +15,23 @@ const PROFILE_SELECT = `
 `;
 
 export async function findProfileByUserId(userId, database = pool) {
-  const result = await database.query(
+  const result = await query(
     `${PROFILE_SELECT} WHERE p.user_id = $1 LIMIT 1`,
     [userId],
+    database,
   );
 
   return result.rows[0] ?? null;
 }
 
-export async function createProfile({ userId, email, fullName, role }) {
-  const client = await pool.connect();
-
-  try {
-    await client.query('BEGIN');
-    await client.query(
+export async function createProfile({ userId, email, fullName, role }, database = pool) {
+  return withTransaction(async (transaction) => {
+    await transaction.query(
       `INSERT INTO public.users (id, email) VALUES ($1, $2)`,
       [userId, email],
     );
 
-    const result = await client.query(
+    const result = await transaction.query(
       `
         INSERT INTO public.profiles (user_id, full_name, role)
         VALUES ($1, $2, $3)
@@ -42,21 +40,9 @@ export async function createProfile({ userId, email, fullName, role }) {
       [userId, fullName, role],
     );
 
-    await client.query('COMMIT');
-
     return {
       ...result.rows[0],
       email,
     };
-  } catch (error) {
-    try {
-      await client.query('ROLLBACK');
-    } catch (rollbackError) {
-      console.error('Failed to roll back profile creation.', rollbackError);
-    }
-
-    throw error;
-  } finally {
-    client.release();
-  }
+  }, database);
 }

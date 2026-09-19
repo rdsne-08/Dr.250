@@ -23,5 +23,7 @@ export function errorHandler(error, _request, response, _next) {
       : isInvalidJson
         ? 'Request body must contain valid JSON.'
         : error.message,
+    ...(statusCode < 500 && error.code ? { code: error.code } : {}),
+    ...(statusCode < 500 && error.details ? { details: error.details } : {}),
   });
 }

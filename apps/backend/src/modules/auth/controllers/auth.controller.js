@@ -29,6 +29,11 @@ export async function logout(request, response) {
 
 export function me(request, response) {
   response.status(200).json({
-    user: request.user,
+    user: {
+      id: request.user.id,
+      email: request.user.email,
+    },
+    profile: request.user.profile,
+    role: request.user.role,
   });
 }
