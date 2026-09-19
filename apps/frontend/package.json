@@ -1,5 +1,20 @@
 {
-  "name": "@sasthosetu/frontend",
+  "name": "@dr250/frontend",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.1.0"
+
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+
+  "devDependencies": {}
 }
