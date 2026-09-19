@@ -37,4 +37,7 @@ export const env = Object.freeze({
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   databaseUrl: requireEnvironmentVariable('DATABASE_URL'),
   databaseSsl: process.env.DATABASE_SSL === 'true',
+  supabaseUrl: requireEnvironmentVariable('SUPABASE_URL'),
+  supabaseAnonKey: requireEnvironmentVariable('SUPABASE_ANON_KEY'),
+  supabaseServiceRoleKey: requireEnvironmentVariable('SUPABASE_SERVICE_ROLE_KEY'),
 });

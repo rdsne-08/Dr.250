@@ -5,6 +5,9 @@ import helmet from 'helmet';
 import { env } from './config/environment.js';
 import { closeDatabase } from './database/pool.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
+import { adminRouter } from './modules/admin/routes/admin.routes.js';
+import { authRouter } from './modules/auth/routes/auth.routes.js';
+import { doctorRouter } from './modules/doctors/routes/doctor.routes.js';
 
 const app = express();
 
@@ -19,6 +22,10 @@ app.get('/api/health', (_request, response) => {
     service: 'Dr.250 backend',
   });
 });
+
+app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/doctor', doctorRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
