@@ -15,39 +15,56 @@ import { prescriptionRouter } from './modules/prescriptions/routes/prescription.
 import { reportRouter } from './modules/reports/routes/report.routes.js';
 import { sessionRouter } from './modules/sessions/routes/session.routes.js';
 
-export const app = express();
+export function createApp({ databaseCheck = testDatabaseConnection } = {}) {
+  const app = express();
 
-app.disable('x-powered-by');
-app.use(helmet());
-app.use(cors({ origin: env.corsOrigin }));
-app.use(express.json({ limit: '1mb' }));
+  app.disable('x-powered-by');
+  app.use(helmet());
+  app.use(cors({ origin: env.corsOrigin }));
+  app.use(express.json({ limit: '1mb' }));
 
-app.get('/api/health', async (_request, response) => {
-  try {
-    await testDatabaseConnection();
+  app.get('/api/health', (_request, response) => {
     response.status(200).json({
-      status: 'OK',
-      service: 'Dr.250 backend',
-      database: 'connected',
+      success: true,
+      data: {
+        service: 'Dr.250 backend',
+        status: 'ok',
+      },
     });
-  } catch {
-    response.status(503).json({
-      status: 'DEGRADED',
-      service: 'Dr.250 backend',
-      database: 'unavailable',
-    });
-  }
-});
+  });
 
-app.use('/api/auth', authRouter);
-app.use('/api/patients', patientRouter);
-app.use('/api/doctors', doctorRouter);
-app.use('/api/labs', labRouter);
-app.use('/api/admin', adminRouter);
-app.use('/api/medical-records', medicalRecordRouter);
-app.use('/api/prescriptions', prescriptionRouter);
-app.use('/api/reports', reportRouter);
-app.use('/api/sessions', sessionRouter);
+  app.get('/api/health/database', async (_request, response) => {
+    try {
+      const connected = await databaseCheck();
+      if (!connected) throw new Error('Database connection check returned false.');
 
-app.use(notFoundHandler);
-app.use(errorHandler);
+      response.status(200).json({
+        success: true,
+        database: 'connected',
+      });
+    } catch {
+      response.status(503).json({
+        success: false,
+        message: 'The database connection is unavailable.',
+        error: 'DATABASE_UNAVAILABLE',
+      });
+    }
+  });
+
+  app.use('/api/auth', authRouter);
+  app.use('/api/patients', patientRouter);
+  app.use('/api/doctors', doctorRouter);
+  app.use('/api/labs', labRouter);
+  app.use('/api/admin', adminRouter);
+  app.use('/api/medical-records', medicalRecordRouter);
+  app.use('/api/prescriptions', prescriptionRouter);
+  app.use('/api/reports', reportRouter);
+  app.use('/api/sessions', sessionRouter);
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
+
+  return app;
+}
+
+export const app = createApp();

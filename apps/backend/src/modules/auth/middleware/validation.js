@@ -1,6 +1,7 @@
 import { HttpError } from '../../../middleware/http-error.js';
 
 export const SUPPORTED_ROLES = Object.freeze(['PATIENT', 'DOCTOR', 'LAB', 'ADMIN']);
+export const SELF_REGISTER_ROLES = Object.freeze(['PATIENT', 'DOCTOR', 'LAB']);
 
 function requireJsonObject(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -49,8 +50,10 @@ export function validateRegistration(request, _response, next) {
     }
 
     const role = request.body.role.trim().toUpperCase();
-    if (!SUPPORTED_ROLES.includes(role)) {
-      throw new HttpError(400, `role must be one of: ${SUPPORTED_ROLES.join(', ')}.`);
+    if (!SELF_REGISTER_ROLES.includes(role)) {
+      throw new HttpError(400, `role must be one of: ${SELF_REGISTER_ROLES.join(', ')}.`, {
+        code: 'VALIDATION_ERROR',
+      });
     }
 
     request.validatedBody = {

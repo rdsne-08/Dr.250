@@ -2,13 +2,14 @@ import {
   createDoctorPrescription,
   getPatientPrescriptions,
 } from '../services/prescription.service.js';
+import { sendSuccess } from '../../../middleware/response.js';
 
 export async function listPrescriptions(request, response) {
   const prescriptions = await getPatientPrescriptions(
     request.user,
     request.validatedParams.patientId,
   );
-  response.status(200).json({ prescriptions });
+  sendSuccess(response, { prescriptions });
 }
 
 export async function createPrescription(request, response) {
@@ -18,5 +19,5 @@ export async function createPrescription(request, response) {
     undefined,
     request.doctor,
   );
-  response.status(201).json({ prescription });
+  sendSuccess(response, { prescription }, 201);
 }

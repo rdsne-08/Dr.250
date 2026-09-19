@@ -1,15 +1,16 @@
 import { getDoctors, getLaboratories, getUsers, verifyEntity } from '../services/admin.service.js';
+import { sendSuccess } from '../../../middleware/response.js';
 
 export async function users(_request, response) {
-  response.status(200).json({ users: await getUsers() });
+  sendSuccess(response, { users: await getUsers() });
 }
 
 export async function doctors(_request, response) {
-  response.status(200).json({ doctors: await getDoctors() });
+  sendSuccess(response, { doctors: await getDoctors() });
 }
 
 export async function laboratories(_request, response) {
-  response.status(200).json({ laboratories: await getLaboratories() });
+  sendSuccess(response, { laboratories: await getLaboratories() });
 }
 
 export async function verify(request, response) {
@@ -18,5 +19,5 @@ export async function verify(request, response) {
     ...request.validatedBody,
     adminUserId: request.user.id,
   });
-  response.status(200).json({ verification });
+  sendSuccess(response, { verification });
 }

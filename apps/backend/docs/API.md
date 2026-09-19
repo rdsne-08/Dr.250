@@ -1,44 +1,84 @@
 # Dr.250 Backend API
 
-The API is served under `/api`. Except for health, registration, and login, requests require a Supabase access token:
+The API is served under `/api`. Except for the two health endpoints, registration, and login, every request requires a valid Supabase access token:
 
 ```http
 Authorization: Bearer <supabase-access-token>
 Content-Type: application/json
 ```
 
-Responses never include database diagnostics or Supabase service credentials. Validation and authorization failures use an `error` message and may include a stable `code`.
+The backend validates the JWT with Supabase and then loads the corresponding application profile. A missing or invalid token returns `401`. An authenticated user with the wrong role, ownership, verification state, or patient-access session receives `403`.
+
+Successful JSON responses use a consistent envelope. The endpoint examples below show the contents of `data` unless the full envelope is displayed.
 
 ```json
 {
-  "error": "An active patient access session is required.",
-  "code": "PATIENT_ACCESS_DENIED"
+  "success": true,
+  "data": {}
 }
 ```
+
+Errors never include database diagnostics, stack traces, or Supabase service credentials. `message` is safe for a client to display, while `error` is a stable machine-readable identifier. Validation failures may also include `details`.
+
+```json
+{
+  "success": false,
+  "message": "An active patient access session is required.",
+  "error": "PATIENT_ACCESS_DENIED"
+}
+```
+
+`POST /api/auth/logout` is the only successful endpoint without a JSON envelope; it returns `204 No Content`.
 
 ## Health
 
 ### `GET /api/health`
 
 - Authentication: No
-- Purpose: Tests the application and PostgreSQL connection.
+- Purpose: Confirms that the HTTP application is running. It does not query PostgreSQL.
 
 ```json
 {
-  "status": "OK",
-  "service": "Dr.250 backend",
+  "success": true,
+  "data": {
+    "service": "Dr.250 backend",
+    "status": "ok"
+  }
+}
+```
+
+### `GET /api/health/database`
+
+- Authentication: No
+- Purpose: Executes a minimal parameter-free query through the configured PostgreSQL pool.
+
+Success: `200 OK`
+
+```json
+{
+  "success": true,
   "database": "connected"
 }
 ```
 
-Returns `503` with `status: "DEGRADED"` when PostgreSQL is unavailable.
+Failure: `503 Service Unavailable`
+
+```json
+{
+  "success": false,
+  "message": "The database connection is unavailable.",
+  "error": "DATABASE_UNAVAILABLE"
+}
+```
 
 ## Authentication
 
 ### `POST /api/auth/register`
 
 - Authentication: No
-- Roles: `PATIENT`, `DOCTOR`, `LAB`, `ADMIN`
+- Self-registration roles: `PATIENT`, `DOCTOR`, `LAB`
+
+`ADMIN` accounts cannot be created through this public endpoint and must be provisioned through a trusted administrative process.
 
 ```json
 {
@@ -53,12 +93,15 @@ Success: `201 Created`
 
 ```json
 {
-  "user": {
-    "profile_id": "uuid",
-    "user_id": "uuid",
-    "email": "patient@example.com",
-    "full_name": "Example Patient",
-    "role": "PATIENT"
+  "success": true,
+  "data": {
+    "user": {
+      "profile_id": "uuid",
+      "user_id": "uuid",
+      "email": "patient@example.com",
+      "full_name": "Example Patient",
+      "role": "PATIENT"
+    }
   }
 }
 ```
@@ -78,12 +121,15 @@ Success: `200 OK`. The response is marked `Cache-Control: no-store`.
 
 ```json
 {
-  "access_token": "supabase-jwt",
-  "refresh_token": "supabase-refresh-token",
-  "expires_in": 3600,
-  "token_type": "bearer",
-  "user": { "user_id": "uuid", "full_name": "Example Patient", "role": "PATIENT" },
-  "role": "PATIENT"
+  "success": true,
+  "data": {
+    "access_token": "supabase-jwt",
+    "refresh_token": "supabase-refresh-token",
+    "expires_in": 3600,
+    "token_type": "bearer",
+    "user": { "user_id": "uuid", "full_name": "Example Patient", "role": "PATIENT" },
+    "role": "PATIENT"
+  }
 }
 ```
 
@@ -98,9 +144,12 @@ Success: `200 OK`. The response is marked `Cache-Control: no-store`.
 
 ```json
 {
-  "user": { "id": "uuid", "email": "patient@example.com" },
-  "profile": { "profile_id": "uuid", "full_name": "Example Patient", "role": "PATIENT" },
-  "role": "PATIENT"
+  "success": true,
+  "data": {
+    "user": { "id": "uuid", "email": "patient@example.com" },
+    "profile": { "profile_id": "uuid", "full_name": "Example Patient", "role": "PATIENT" },
+    "role": "PATIENT"
+  }
 }
 ```
 
@@ -110,10 +159,10 @@ Every patient endpoint requires a `PATIENT` token and resolves data from the aut
 
 | Method | Endpoint | Response |
 | --- | --- | --- |
-| `GET` | `/api/patients/profile` | `{ "patient": { ... } }` |
-| `GET` | `/api/patients/records` | `{ "records": [ ... ] }` |
-| `GET` | `/api/patients/prescriptions` | `{ "prescriptions": [ ... ] }` |
-| `GET` | `/api/patients/reports` | `{ "reports": [ ... ] }` |
+| `GET` | `/api/patients/profile` | `data.patient` |
+| `GET` | `/api/patients/records` | `data.records` |
+| `GET` | `/api/patients/prescriptions` | `data.prescriptions` |
+| `GET` | `/api/patients/reports` | `data.reports` |
 
 ## Doctors
 
@@ -121,9 +170,9 @@ Every doctor endpoint requires a `DOCTOR` token and a `VERIFIED` doctor profile.
 
 | Method | Endpoint | Response |
 | --- | --- | --- |
-| `GET` | `/api/doctors/profile` | `{ "doctor": { ... } }` |
-| `GET` | `/api/doctors/patients` | `{ "patients": [ ... ] }` |
-| `GET` | `/api/doctors/sessions` | `{ "sessions": [ ... ] }` |
+| `GET` | `/api/doctors/profile` | `data.doctor` |
+| `GET` | `/api/doctors/patients` | `data.patients` |
+| `GET` | `/api/doctors/sessions` | `data.sessions` |
 
 ### `POST /api/doctors/prescriptions`
 
@@ -144,14 +193,17 @@ Success: `201 Created`
 
 ```json
 {
-  "prescription": {
-    "id": "uuid",
-    "patient_id": "patient-uuid",
-    "doctor_id": "doctor-uuid",
-    "medicine": "Paracetamol",
-    "dosage": "500 mg",
-    "duration": "3 days",
-    "instructions": "Take after food when needed."
+  "success": true,
+  "data": {
+    "prescription": {
+      "id": "uuid",
+      "patient_id": "patient-uuid",
+      "doctor_id": "doctor-uuid",
+      "medicine": "Paracetamol",
+      "dosage": "500 mg",
+      "duration": "3 days",
+      "instructions": "Take after food when needed."
+    }
   }
 }
 ```
@@ -162,8 +214,8 @@ Every laboratory endpoint requires a `LAB` token and a `VERIFIED` laboratory pro
 
 | Method | Endpoint | Response |
 | --- | --- | --- |
-| `GET` | `/api/labs/profile` | `{ "laboratory": { ... } }` |
-| `GET` | `/api/labs/reports` | Assigned reports only |
+| `GET` | `/api/labs/profile` | `data.laboratory` |
+| `GET` | `/api/labs/reports` | Assigned reports only in `data.reports` |
 
 ### `POST /api/labs/reports`
 
@@ -181,7 +233,7 @@ Uploads or advances an already assigned report. The laboratory cannot change its
 
 `file_url` is required for `COMPLETED`. The existing schema stores the URL and status in `lab_reports`; textual `result` content is preserved as a `LAB_REPORT` medical record.
 
-Success: `201 Created`
+Success: `200 OK` because this updates an existing assigned report.
 
 ## Medical records
 
@@ -192,17 +244,20 @@ Success: `201 Created`
 
 ```json
 {
-  "records": [
-    {
-      "id": "uuid",
-      "patient_id": "uuid",
-      "diagnosis": "Seasonal viral infection",
-      "notes": "Hydration and rest advised.",
-      "attachments": ["https://files.example.com/record.pdf"],
-      "type": "DIAGNOSIS",
-      "date": "2026-09-19T10:00:00.000Z"
-    }
-  ]
+  "success": true,
+  "data": {
+    "records": [
+      {
+        "id": "uuid",
+        "patient_id": "uuid",
+        "diagnosis": "Seasonal viral infection",
+        "notes": "Hydration and rest advised.",
+        "attachments": ["https://files.example.com/record.pdf"],
+        "type": "DIAGNOSIS",
+        "date": "2026-09-19T10:00:00.000Z"
+      }
+    ]
+  }
 }
 ```
 
@@ -229,7 +284,7 @@ The current database schema has one `document_url`, so this API accepts at most 
 
 - Authentication: Required
 - Roles: Patient owner, verified doctor with active access, or admin
-- Response: `{ "prescriptions": [ ... ] }`
+- Response: `data.prescriptions`
 
 ### `POST /api/prescriptions`
 
@@ -247,7 +302,7 @@ The current database schema has one `document_url`, so this API accepts at most 
 - Doctor: Active patient access required
 - Lab: Only reports assigned to the authenticated laboratory
 - Admin: Allowed by platform administrator policy
-- Response: `{ "reports": [ ... ] }`
+- Response: `data.reports`
 
 ### `POST /api/reports`
 
@@ -262,7 +317,7 @@ For a doctor, creates a request assigned to a verified laboratory:
 }
 ```
 
-For a laboratory, uses the same request body and behavior as `POST /api/labs/reports`. Success: `201 Created`.
+For a laboratory, uses the same request body and behavior as `POST /api/labs/reports` and returns `200 OK`. A doctor-created request returns `201 Created`.
 
 ## Administration
 
@@ -270,9 +325,9 @@ All endpoints require an `ADMIN` token.
 
 | Method | Endpoint | Response |
 | --- | --- | --- |
-| `GET` | `/api/admin/users` | `{ "users": [ ... ] }` |
-| `GET` | `/api/admin/doctors` | `{ "doctors": [ ... ] }` |
-| `GET` | `/api/admin/labs` | `{ "laboratories": [ ... ] }` |
+| `GET` | `/api/admin/users` | `data.users` |
+| `GET` | `/api/admin/doctors` | `data.doctors` |
+| `GET` | `/api/admin/labs` | `data.laboratories` |
 
 ### `PATCH /api/admin/verify/:id`
 
@@ -287,11 +342,14 @@ All endpoints require an `ADMIN` token.
 
 ```json
 {
-  "verification": {
-    "id": "uuid",
-    "entity_type": "DOCTOR",
-    "verification_status": "VERIFIED",
-    "updated_at": "2026-09-19T10:00:00.000Z"
+  "success": true,
+  "data": {
+    "verification": {
+      "id": "uuid",
+      "entity_type": "DOCTOR",
+      "verification_status": "VERIFIED",
+      "updated_at": "2026-09-19T10:00:00.000Z"
+    }
   }
 }
 ```

@@ -48,6 +48,19 @@ test('registration validation rejects unsupported roles', () => {
   assert.equal(error.statusCode, 400);
 });
 
+test('public registration rejects administrator accounts', () => {
+  const { error } = runValidation(validateRegistration, {
+    email: 'admin@example.com',
+    password: 'a-secure-password',
+    full_name: 'Example Admin',
+    role: 'ADMIN',
+  });
+
+  assert.ok(error instanceof HttpError);
+  assert.equal(error.statusCode, 400);
+  assert.equal(error.code, 'VALIDATION_ERROR');
+});
+
 test('login validation never trims or transforms passwords', () => {
   const { request, error } = runValidation(validateLogin, {
     email: 'user@example.com',
@@ -79,4 +92,16 @@ test('role middleware rejects a different role', () => {
 
   assert.ok(nextError instanceof HttpError);
   assert.equal(nextError.statusCode, 403);
+});
+
+test('role middleware returns 401 when authentication context is missing', () => {
+  const middleware = requireRole('ADMIN');
+  let nextError;
+
+  middleware({}, {}, (error) => {
+    nextError = error;
+  });
+
+  assert.ok(nextError instanceof HttpError);
+  assert.equal(nextError.statusCode, 401);
 });

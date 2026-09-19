@@ -51,6 +51,10 @@ for (const [method, path] of protectedRoutes) {
     const body = await response.json();
 
     assert.equal(response.status, 401);
-    assert.equal(body.error, 'A Bearer access token is required.');
+    assert.deepEqual(body, {
+      success: false,
+      message: 'A Bearer access token is required.',
+      error: 'UNAUTHORIZED',
+    });
   });
 }

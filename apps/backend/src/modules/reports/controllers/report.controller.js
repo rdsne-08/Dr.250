@@ -1,8 +1,9 @@
 import { getPatientReports, submitReport } from '../services/report.service.js';
+import { sendSuccess } from '../../../middleware/response.js';
 
 export async function listReports(request, response) {
   const reports = await getPatientReports(request.user, request.validatedParams.patientId);
-  response.status(200).json({ reports });
+  sendSuccess(response, { reports });
 }
 
 export async function createReport(request, response) {
@@ -12,5 +13,5 @@ export async function createReport(request, response) {
     undefined,
     request.laboratory,
   );
-  response.status(201).json({ report });
+  sendSuccess(response, { report }, request.user.role === 'DOCTOR' ? 201 : 200);
 }

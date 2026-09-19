@@ -1,18 +1,19 @@
 import { loginUser, logoutUser, registerUser } from '../services/auth.service.js';
+import { sendSuccess } from '../../../middleware/response.js';
 
 export async function register(request, response) {
   const profile = await registerUser(request.validatedBody);
 
-  response.status(201).json({
+  sendSuccess(response, {
     user: profile,
-  });
+  }, 201);
 }
 
 export async function login(request, response) {
   const result = await loginUser(request.validatedBody);
 
   response.set('Cache-Control', 'no-store');
-  response.status(200).json({
+  sendSuccess(response, {
     access_token: result.accessToken,
     refresh_token: result.refreshToken,
     expires_in: result.expiresIn,
@@ -28,7 +29,7 @@ export async function logout(request, response) {
 }
 
 export function me(request, response) {
-  response.status(200).json({
+  sendSuccess(response, {
     user: {
       id: request.user.id,
       email: request.user.email,
