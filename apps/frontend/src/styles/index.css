@@ -58,64 +58,117 @@ select {
 }
 
 .dna-scene {
-  contain: layout paint;
-  overflow: hidden;
+  contain: layout;
+  isolation: isolate;
+  overflow: visible;
 }
 
 .dna-helix {
   position: absolute;
-  right: 15%;
+  right: auto;
+  left: -40%;
   top: 50%;
-  width: min(42%, 13rem);
-  height: 82%;
-  opacity: 0.46;
-  filter: drop-shadow(0 18px 34px rgba(32, 169, 127, 0.12));
-  transform: translateY(-50%) rotate(8deg);
-  animation: dna-float 16s ease-in-out infinite;
+  width: min(72%, 23rem);
+  height: 108%;
+  opacity: 0.64;
+  filter: drop-shadow(0 18px 30px rgba(32, 169, 127, 0.16));
+  transform: translate3d(0, -50%, 0) rotate(7deg);
+  transform-origin: center;
+  will-change: transform;
+  animation: dna-float 22s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
 .dna-core {
   transform-box: fill-box;
   transform-origin: center;
-  animation: dna-turn 12s ease-in-out infinite;
+  will-change: transform;
+  animation: dna-turn 18s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.dna-axis {
+  stroke: #7dd9b9;
+  stroke-width: 1;
+  stroke-dasharray: 2 14;
+  opacity: 0.28;
+  vector-effect: non-scaling-stroke;
+}
+
+.dna-strand {
+  fill: none;
+}
+
+.dna-strand-halo {
+  fill: none;
+  stroke: #b1ead4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 14;
+  opacity: 0.18;
+  vector-effect: non-scaling-stroke;
 }
 
 .dna-rung {
   transform-box: fill-box;
   transform-origin: center;
-  animation: dna-breathe 3.8s ease-in-out infinite;
+  will-change: transform, opacity;
+  animation: dna-breathe 7.2s ease-in-out infinite;
 }
 
 .dna-rung-back {
-  opacity: 0.48;
+  opacity: 0.58;
 }
 
 .dna-rung-front {
-  opacity: 0.92;
+  opacity: 1;
+}
+
+.dna-particle {
+  opacity: 0.54;
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+  animation: dna-particle-drift 14s ease-in-out infinite;
+}
+
+.dna-particle-2 {
+  animation-delay: -4s;
+  animation-duration: 17s;
+}
+
+.dna-particle-3 {
+  animation-delay: -8s;
+  animation-duration: 19s;
+}
+
+.dna-particle-4 {
+  animation-delay: -11s;
+  animation-duration: 16s;
 }
 
 .dna-glow {
   position: absolute;
   border-radius: 999px;
-  filter: blur(10px);
+  will-change: transform;
 }
 
 .dna-glow-one {
-  right: 2%;
-  top: 18%;
-  width: 20rem;
-  height: 20rem;
-  background: rgba(177, 234, 212, 0.3);
-  animation: glow-drift 13s ease-in-out infinite;
+  right: auto;
+  left: -54%;
+  top: 4%;
+  width: 34rem;
+  height: 40rem;
+  background: radial-gradient(circle, rgba(177, 234, 212, 0.38), rgba(238, 251, 246, 0.14) 56%, transparent 73%);
+  animation: glow-drift 22s ease-in-out infinite;
 }
 
 .dna-glow-two {
-  bottom: 8%;
-  right: 34%;
-  width: 12rem;
-  height: 12rem;
-  background: rgba(175, 236, 231, 0.26);
-  animation: glow-drift 15s ease-in-out -4s infinite reverse;
+  bottom: -3%;
+  right: auto;
+  left: -16%;
+  width: 21rem;
+  height: 21rem;
+  background: radial-gradient(circle, rgba(175, 236, 231, 0.3), transparent 70%);
+  animation: glow-drift 26s ease-in-out -7s infinite reverse;
 }
 
 .audience-orbit::before,
@@ -156,32 +209,42 @@ select {
 @keyframes dna-float {
   0%,
   100% {
-    transform: translateY(-50%) rotate(7deg);
+    transform: translate3d(0, -50%, 0) rotate(6deg);
   }
   50% {
-    transform: translateY(calc(-50% - 18px)) rotate(11deg);
+    transform: translate3d(-10px, calc(-50% - 20px), 0) rotate(10deg);
   }
 }
 
 @keyframes dna-turn {
   0%,
   100% {
-    transform: perspective(500px) rotateY(-9deg) scaleX(0.94);
+    transform: perspective(680px) rotateY(-16deg) scaleX(1.08);
   }
   50% {
-    transform: perspective(500px) rotateY(9deg) scaleX(1.05);
+    transform: perspective(680px) rotateY(16deg) scaleX(1.22);
   }
 }
 
 @keyframes dna-breathe {
   0%,
   100% {
-    opacity: 0.55;
-    transform: scaleX(0.88);
+    transform: scaleX(0.9);
   }
   50% {
-    opacity: 1;
-    transform: scaleX(1.05);
+    transform: scaleX(1.04);
+  }
+}
+
+@keyframes dna-particle-drift {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translate3d(0, 0, 0) scale(0.85);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate3d(8px, -14px, 0) scale(1.12);
   }
 }
 
@@ -197,16 +260,48 @@ select {
 
 @media (max-width: 1023px) {
   .dna-helix {
-    right: 4%;
-    opacity: 0.3;
+    right: auto;
+    left: -6%;
+    width: min(66%, 19rem);
+    height: 102%;
+    opacity: 0.48;
+  }
+
+  .dna-glow-one {
+    right: auto;
+    left: -31%;
+  }
+
+  .dna-glow-two {
+    right: auto;
+    left: -10%;
   }
 }
 
 @media (max-width: 639px) {
   .dna-helix {
-    right: -4%;
-    width: 9rem;
-    opacity: 0.22;
+    right: auto;
+    left: 12%;
+    top: 44%;
+    width: 14.5rem;
+    height: 96%;
+    opacity: 0.38;
+  }
+
+  .dna-glow-one {
+    right: auto;
+    left: -3rem;
+    top: 4%;
+    width: 28rem;
+    height: 32rem;
+    opacity: 0.82;
+  }
+
+  .dna-glow-two {
+    right: auto;
+    left: 1rem;
+    bottom: 14%;
+    opacity: 0.68;
   }
 
   .hero-grid {
@@ -226,5 +321,18 @@ select {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .dna-helix,
+  .dna-core,
+  .dna-rung,
+  .dna-particle,
+  .dna-glow {
+    animation: none !important;
+    will-change: auto;
+  }
+
+  .dna-helix {
+    transform: translate3d(0, -50%, 0) rotate(8deg);
   }
 }
