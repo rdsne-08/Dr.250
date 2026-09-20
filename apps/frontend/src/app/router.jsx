@@ -1,0 +1,35 @@
+import { createBrowserRouter } from 'react-router-dom';
+
+import { ProtectedRoute } from '../components/auth/ProtectedRoute.jsx';
+import { AdminDashboard } from '../portals/admin/index.js';
+import { DoctorPortalPage } from '../portals/doctor/pages/DoctorPortalPage.jsx';
+import { LabPortalPage } from '../portals/lab/pages/LabPortalPage.jsx';
+import { PatientDashboard } from '../portals/patient/index.js';
+import { LandingPage } from './pages/LandingPage.jsx';
+import { LoginPage } from './pages/LoginPage.jsx';
+import { NotFoundPage } from './pages/NotFoundPage.jsx';
+import { RegisterPage } from './pages/RegisterPage.jsx';
+import { AUTH_ROLES } from '../services/authService.js';
+
+export const router = createBrowserRouter([
+  { path: '/', element: <LandingPage /> },
+  { path: '/login', element: <LoginPage /> },
+  { path: '/register', element: <RegisterPage /> },
+  {
+    element: <ProtectedRoute allowedRole={AUTH_ROLES.PATIENT} />,
+    children: [{ path: '/patient', element: <PatientDashboard /> }],
+  },
+  {
+    element: <ProtectedRoute allowedRole={AUTH_ROLES.DOCTOR} />,
+    children: [{ path: '/doctor', element: <DoctorPortalPage /> }],
+  },
+  {
+    element: <ProtectedRoute allowedRole={AUTH_ROLES.LAB} />,
+    children: [{ path: '/lab', element: <LabPortalPage /> }],
+  },
+  {
+    element: <ProtectedRoute allowedRole={AUTH_ROLES.ADMIN} />,
+    children: [{ path: '/admin', element: <AdminDashboard /> }],
+  },
+  { path: '*', element: <NotFoundPage /> },
+]);
