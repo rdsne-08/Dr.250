@@ -32,12 +32,29 @@ function latestDate(items) {
 
 function buildTimeline(records, prescriptions, reports) {
   const candidates = [
-    reports[0] && { id: 'labUploaded', date: 'today', type: 'report', at: reports[0].created_at },
+    reports[0] && {
+      id: 'labUploaded',
+      date: localizedDate(reports[0].updated_at ?? reports[0].created_at).en,
+      type: 'report',
+      at: reports[0].updated_at ?? reports[0].created_at,
+      title: `${reports[0].test_name} report`,
+      detail: reports[0].status === 'COMPLETED'
+        ? `Completed by ${reports[0].lab_name}. The report is ready in your health record.`
+        : `Current laboratory status: ${reports[0].status}.`,
+      fileUrl: reports[0].file_url,
+      reportId: reports[0].id,
+    },
     prescriptions[0] && {
       id: 'prescriptionUpdated',
-      date: 'aug28',
+      date: localizedDate(prescriptions[0].created_at).en,
       type: 'prescription',
       at: prescriptions[0].created_at,
+      title: `Prescription: ${prescriptions[0].medicine}`,
+      detail: [
+        prescriptions[0].dosage,
+        prescriptions[0].duration,
+        prescriptions[0].instructions,
+      ].filter(Boolean).join(' · '),
     },
     records[0] && { id: 'recordAdded', date: 'aug03', type: 'record', at: records[0].created_at },
   ].filter(Boolean);

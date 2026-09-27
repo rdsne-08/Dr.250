@@ -30,7 +30,15 @@ function loginError(error) {
   return new HttpError(401, 'Invalid email or password.');
 }
 
-export async function registerUser({ email, password, fullName, role }) {
+export async function registerUser({
+  email,
+  password,
+  fullName,
+  role,
+  specialization,
+  labName,
+  licenseNumber,
+}) {
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
@@ -48,6 +56,9 @@ export async function registerUser({ email, password, fullName, role }) {
       email: data.user.email ?? email,
       fullName,
       role,
+      specialization,
+      labName,
+      licenseNumber,
     });
   } catch (error) {
     // Supabase and PostgreSQL cannot share one transaction. Remove the newly

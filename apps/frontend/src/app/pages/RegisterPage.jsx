@@ -19,9 +19,12 @@ export function RegisterPage() {
     confirmPassword: '',
     confirmed: false,
     email: '',
+    labName: '',
+    licenseNumber: '',
     name: '',
     password: '',
     role: AUTH_ROLES.PATIENT,
+    specialization: '',
   });
   const [clientError, setClientError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -124,6 +127,37 @@ export function RegisterPage() {
               onChange={(event) => updateField('email', event.target.value)}
             />
           </div>
+          {form.role === AUTH_ROLES.DOCTOR ? (
+            <Input
+              required
+              label={copy.register.specialization ?? authCopy.en.register.specialization}
+              placeholder={copy.register.specializationPlaceholder ?? authCopy.en.register.specializationPlaceholder}
+              value={form.specialization}
+              onChange={(event) => updateField('specialization', event.target.value)}
+            />
+          ) : null}
+          {form.role === AUTH_ROLES.LAB ? (
+            <Input
+              required
+              label={copy.register.labName ?? authCopy.en.register.labName}
+              placeholder={copy.register.labNamePlaceholder ?? authCopy.en.register.labNamePlaceholder}
+              value={form.labName}
+              onChange={(event) => updateField('labName', event.target.value)}
+            />
+          ) : null}
+          {[AUTH_ROLES.DOCTOR, AUTH_ROLES.LAB].includes(form.role) ? (
+            <Input
+              required
+              label={form.role === AUTH_ROLES.LAB
+                ? copy.register.labLicenseNumber ?? authCopy.en.register.labLicenseNumber
+                : copy.register.licenseNumber ?? authCopy.en.register.licenseNumber}
+              placeholder={form.role === AUTH_ROLES.LAB
+                ? copy.register.labLicenseNumberPlaceholder ?? authCopy.en.register.labLicenseNumberPlaceholder
+                : copy.register.licenseNumberPlaceholder ?? authCopy.en.register.licenseNumberPlaceholder}
+              value={form.licenseNumber}
+              onChange={(event) => updateField('licenseNumber', event.target.value)}
+            />
+          ) : null}
           <div className="relative">
             <LockKeyhole className="pointer-events-none absolute bottom-4 left-4 z-10 size-4 text-ink-300" aria-hidden="true" />
             <Input

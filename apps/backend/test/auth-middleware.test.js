@@ -48,6 +48,22 @@ test('registration validation rejects unsupported roles', () => {
   assert.equal(error.statusCode, 400);
 });
 
+test('laboratory registration requires and normalizes laboratory details', () => {
+  const { request, error } = runValidation(validateRegistration, {
+    email: 'lab@example.com',
+    password: 'a-secure-password',
+    full_name: 'Lab Operator',
+    role: 'lab',
+    lab_name: ' Dhaka Diagnostics ',
+    license_number: ' DGHS-1234 ',
+  });
+
+  assert.equal(error, undefined);
+  assert.equal(request.validatedBody.role, 'LAB');
+  assert.equal(request.validatedBody.labName, 'Dhaka Diagnostics');
+  assert.equal(request.validatedBody.licenseNumber, 'DGHS-1234');
+});
+
 test('public registration rejects administrator accounts', () => {
   const { error } = runValidation(validateRegistration, {
     email: 'admin@example.com',

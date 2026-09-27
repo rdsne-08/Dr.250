@@ -66,6 +66,23 @@ export async function getAuthorizedPatients(doctorId, database = pool) {
   return result.rows;
 }
 
+export async function getAvailableLaboratories(database = pool) {
+  const result = await query(
+    `
+      SELECT laboratory.id, laboratory.lab_name, laboratory.license_number,
+             profile.full_name, app_user.email
+      FROM public.laboratories AS laboratory
+      INNER JOIN public.profiles AS profile ON profile.id = laboratory.profile_id
+      INNER JOIN public.users AS app_user ON app_user.id = profile.user_id
+      WHERE laboratory.verification_status = 'VERIFIED'
+      ORDER BY laboratory.lab_name
+    `,
+    [],
+    database,
+  );
+  return result.rows;
+}
+
 export async function hasActivePatientAccess(doctorId, patientId, database = pool) {
   const result = await query(
     `

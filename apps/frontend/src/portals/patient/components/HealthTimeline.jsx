@@ -37,6 +37,9 @@ export function HealthTimeline({ copy, events }) {
           {events.map((event, index) => {
           const eventCopy = copy.timeline.events[event.id];
           const Icon = eventIcons[event.type];
+          const eventTitle = event.title ?? eventCopy.title;
+          const eventDetail = event.detail ?? eventCopy.detail;
+          const eventDate = copy.timeline.dates[event.date] ?? event.date;
 
           return (
             <article
@@ -48,9 +51,9 @@ export function HealthTimeline({ copy, events }) {
                 <Icon className="size-4" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1 pb-2">
-                <p className="text-xs font-bold text-health-700">{copy.timeline.dates[event.date]}</p>
-                <h3 className="mt-1 text-base font-bold text-ink-900">{eventCopy.title}</h3>
-                <p className="mt-1 text-sm leading-6 text-ink-500">{eventCopy.detail}</p>
+                <p className="text-xs font-bold text-health-700">{eventDate}</p>
+                <h3 className="mt-1 text-base font-bold text-ink-900">{eventTitle}</h3>
+                <p className="mt-1 text-sm leading-6 text-ink-500">{eventDetail}</p>
               </div>
             </article>
           );

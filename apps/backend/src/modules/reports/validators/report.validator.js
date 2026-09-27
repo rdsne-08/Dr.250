@@ -2,7 +2,6 @@ import {
   enumField,
   requireJsonObject,
   stringField,
-  urlField,
   uuidField,
 } from '../../../validation/request.js';
 import { HttpError } from '../../../middleware/http-error.js';
@@ -18,15 +17,28 @@ export function validateReportPatient(request, _response, next) {
   }
 }
 
+export function validateReportId(request, _response, next) {
+  try {
+    request.validatedParams = { reportId: uuidField(request.params, 'reportId') };
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 export function validateCreateReport(request, _response, next) {
   try {
     const body = requireJsonObject(request.body);
 
     if (request.user.role === 'LAB') {
       const status = enumField(body, 'status', REPORT_STATUSES);
-      const fileUrl = urlField(body, 'file_url', { required: false, max: 2000 });
-      if (status === 'COMPLETED' && !fileUrl) {
-        throw new HttpError(400, 'file_url is required when status is COMPLETED.', {
+      if (request.file && status !== 'COMPLETED') {
+        throw new HttpError(400, 'A report file can only be uploaded with COMPLETED status.', {
+          code: 'VALIDATION_ERROR',
+        });
+      }
+      if (status === 'COMPLETED' && !request.file) {
+        throw new HttpError(400, 'A report file is required when status is COMPLETED.', {
           code: 'VALIDATION_ERROR',
         });
       }
@@ -35,7 +47,6 @@ export function validateCreateReport(request, _response, next) {
         reportId: uuidField(body, 'report_id'),
         testName: stringField(body, 'test_name', { required: false, max: 240 }),
         result: stringField(body, 'result', { required: false, max: 10_000 }),
-        fileUrl,
         status,
       };
     } else {

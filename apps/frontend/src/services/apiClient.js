@@ -8,7 +8,7 @@ function normalizeBaseUrl(value) {
   return (value || DEFAULT_API_URL).replace(/\/+$/, '');
 }
 
-export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_URL);
+export const API_BASE_URL = normalizeBaseUrl(import.meta.env?.VITE_API_URL);
 
 export class ApiError extends Error {
   constructor(message, options = {}) {
@@ -103,6 +103,19 @@ async function parseResponse(response) {
   }
 }
 
+export function unwrapApiPayload(payload) {
+  if (
+    payload
+    && typeof payload === 'object'
+    && payload.success === true
+    && Object.hasOwn(payload, 'data')
+  ) {
+    return payload.data;
+  }
+
+  return payload;
+}
+
 export async function apiRequest(path, options = {}) {
   const {
     auth = true,
@@ -142,15 +155,15 @@ export async function apiRequest(path, options = {}) {
       emitAuthExpired();
     }
 
-    const serverMessage = payload && typeof payload === 'object' ? payload.error : null;
+    const serverMessage = payload && typeof payload === 'object' ? payload.message : null;
     throw new ApiError(serverMessage || statusMessages[response.status] || 'The request failed.', {
       status: response.status,
-      code: payload?.code ?? `HTTP_${response.status}`,
+      code: payload?.error ?? `HTTP_${response.status}`,
       details: payload?.details,
     });
   }
 
-  return payload;
+  return unwrapApiPayload(payload);
 }
 
 export const apiClient = Object.freeze({

@@ -24,7 +24,10 @@ export async function findProfileByUserId(userId, database = pool) {
   return result.rows[0] ?? null;
 }
 
-export async function createProfile({ userId, email, fullName, role }, database = pool) {
+export async function createProfile(
+  { userId, email, fullName, role, specialization, labName, licenseNumber },
+  database = pool,
+) {
   return withTransaction(async (transaction) => {
     await transaction.query(
       `INSERT INTO public.users (id, email) VALUES ($1, $2)`,
@@ -40,9 +43,65 @@ export async function createProfile({ userId, email, fullName, role }, database 
       [userId, fullName, role],
     );
 
+    let patientId;
+    let doctor;
+    let laboratory;
+    if (role === 'PATIENT') {
+      const patientResult = await transaction.query(
+        `
+          INSERT INTO public.patients (profile_id)
+          VALUES ($1)
+          RETURNING id
+        `,
+        [result.rows[0].profile_id],
+      );
+      patientId = patientResult.rows[0].id;
+    }
+
+    if (role === 'DOCTOR') {
+      const doctorResult = await transaction.query(
+        `
+          INSERT INTO public.doctors (profile_id, specialization, license_number)
+          VALUES ($1, $2, $3)
+          RETURNING id, specialization, license_number, verification_status
+        `,
+        [result.rows[0].profile_id, specialization, licenseNumber],
+      );
+      doctor = doctorResult.rows[0];
+    }
+
+    if (role === 'LAB') {
+      const laboratoryResult = await transaction.query(
+        `
+          INSERT INTO public.laboratories (profile_id, lab_name, license_number)
+          VALUES ($1, $2, $3)
+          RETURNING id, lab_name, license_number, verification_status
+        `,
+        [result.rows[0].profile_id, labName, licenseNumber],
+      );
+      laboratory = laboratoryResult.rows[0];
+    }
+
     return {
       ...result.rows[0],
       email,
+      ...(patientId ? { patient_id: patientId } : {}),
+      ...(doctor
+        ? {
+            doctor_id: doctor.id,
+            specialization: doctor.specialization,
+            license_number: doctor.license_number,
+            verification_status: doctor.verification_status,
+          }
+        : {}),
+      ...(laboratory
+        ? {
+            laboratory_id: laboratory.id,
+            lab_name: laboratory.lab_name,
+            license_number: laboratory.license_number,
+            verification_status: laboratory.verification_status,
+          }
+        : {}),
     };
   }, database);
 }

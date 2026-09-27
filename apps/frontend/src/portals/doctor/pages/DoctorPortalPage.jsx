@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { authCopy } from '../../../components/auth/authCopy.js';
 import { ErrorState } from '../../../components/feedback/ErrorState.jsx';
 import { LoadingScreen } from '../../../components/feedback/LoadingScreen.jsx';
+import { Badge, Card } from '../../../components/ui/index.js';
 import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
 import { doctorService } from '../../../services/doctorService.js';
@@ -11,6 +12,7 @@ import { ClinicalAssistant } from '../components/ClinicalAssistant.jsx';
 import { ConsultationWorkspace } from '../components/ConsultationWorkspace.jsx';
 import { DoctorLayout } from '../components/DoctorLayout.jsx';
 import { DoctorOverview } from '../components/DoctorOverview.jsx';
+import { LabOrderForm } from '../components/LabOrderForm.jsx';
 import { PatientManagement } from '../components/PatientManagement.jsx';
 import { doctorCopy } from '../data/doctorCopy.js';
 
@@ -27,6 +29,20 @@ export function DoctorPortalPage() {
   const { data: sourceData, error, isLoading, reload } = useAsyncResource(
     doctorService.getDashboard,
   );
+  const [selectedPatientId, setSelectedPatientId] = useState(null);
+
+  useEffect(() => {
+    if (!sourceData?.patients?.length) {
+      setSelectedPatientId(null);
+      return;
+    }
+
+    setSelectedPatientId((current) =>
+      sourceData.patients.some((patient) => patient.id === current)
+        ? current
+        : sourceData.patients[0].id,
+    );
+  }, [sourceData]);
 
   const localizedData = useMemo(() => {
     if (!sourceData) return null;
@@ -64,6 +80,10 @@ export function DoctorPortalPage() {
           detail: localize(item.detail, language),
         })),
       })),
+      laboratories: sourceData.laboratories.map((laboratory) => ({
+        ...laboratory,
+        name: localize(laboratory.name, language),
+      })),
     };
   }, [language, sourceData]);
 
@@ -79,6 +99,11 @@ export function DoctorPortalPage() {
     );
   }
 
+  const selectedPatient = localizedData.patients.find(
+    (patient) => patient.id === selectedPatientId,
+  );
+  const isVerified = localizedData.verificationStatus === 'VERIFIED';
+
   return (
     <DoctorLayout
       copy={copy}
@@ -89,6 +114,17 @@ export function DoctorPortalPage() {
         id="doctor-overview"
         className="mx-auto max-w-[100rem] scroll-mt-24 px-4 pb-28 pt-6 sm:px-7 sm:pt-8 lg:px-10 lg:pb-12"
       >
+        {!isVerified ? (
+          <Card className="p-6 sm:p-8">
+            <Badge variant="neutral">{localizedData.verificationStatus}</Badge>
+            <h1 className="mt-4 text-2xl font-bold text-ink-950">Doctor verification required</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-500">
+              Your clinical profile is available, but patient records and prescription tools remain
+              locked until an administrator verifies your medical license.
+            </p>
+          </Card>
+        ) : (
+          <>
         <DoctorOverview
           appointments={localizedData.appointments}
           copy={copy}
@@ -97,13 +133,32 @@ export function DoctorPortalPage() {
         />
 
         <div className="mt-7">
-          <PatientManagement copy={copy} patients={localizedData.patients} />
+          <PatientManagement
+            copy={copy}
+            patients={localizedData.patients}
+            selectedPatientId={selectedPatientId}
+            onSelectPatient={setSelectedPatientId}
+          />
         </div>
 
+        <LabOrderForm
+          copy={copy}
+          laboratories={localizedData.laboratories}
+          patient={selectedPatient}
+          onOrdered={reload}
+        />
+
         <div className="mt-7 grid items-start gap-7 2xl:grid-cols-[minmax(0,1.45fr)_minmax(21rem,0.55fr)]">
-          <ConsultationWorkspace appointments={localizedData.appointments} copy={copy} />
+          <ConsultationWorkspace
+            appointments={localizedData.appointments}
+            copy={copy}
+            patient={selectedPatient}
+            onSaved={reload}
+          />
           <ClinicalAssistant copy={copy} />
         </div>
+          </>
+        )}
       </main>
     </DoctorLayout>
   );

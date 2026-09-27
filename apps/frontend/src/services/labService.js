@@ -65,6 +65,7 @@ function adaptDashboard(laboratory, sourceReports) {
     requestedAt: localizedDate(report.created_at),
     dueAt: localizedDate(report.updated_at),
     status: displayStatus(report.status),
+    rawStatus: report.status,
     priority: 'routine',
   }));
   const testById = Object.fromEntries(tests.map((test) => [test.id, test]));
@@ -143,6 +144,14 @@ async function uploadReport({ file, note, patientId, reportId, testType }) {
   return payload.report;
 }
 
+async function updateReportStatus(reportId, status) {
+  const payload = await apiClient.post(endpoints.reports, {
+    report_id: reportId,
+    status,
+  });
+  return payload.report;
+}
+
 export const labService = Object.freeze({
   getDashboard,
   getPendingTests: async () => {
@@ -151,5 +160,6 @@ export const labService = Object.freeze({
   },
   getProfile: async () => (await apiClient.get(endpoints.profile)).laboratory,
   getReports: async () => (await apiClient.get(endpoints.reports)).reports ?? [],
+  updateReportStatus,
   uploadReport,
 });

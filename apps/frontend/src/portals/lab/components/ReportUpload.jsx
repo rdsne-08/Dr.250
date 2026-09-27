@@ -1,19 +1,21 @@
 import { CheckCircle2, FileText, Send, ShieldCheck, UploadCloud } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 
-import { Button, Card, Input, Notification } from '../../../components/ui/index.js';
+import { Button, Card, Notification } from '../../../components/ui/index.js';
 import { labService } from '../../../services/labService.js';
 
-export function ReportUpload({ copy, onUploaded }) {
+export function ReportUpload({ copy, onUploaded, tests }) {
   const fileInputId = useId();
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
-  const [patientId, setPatientId] = useState('');
-  const [testType, setTestType] = useState('');
+  const [reportId, setReportId] = useState('');
   const [note, setNote] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
+  const availableTests = tests.filter((test) =>
+    ['SAMPLE_COLLECTED', 'PROCESSING'].includes(test.rawStatus));
+  const selectedTest = availableTests.find((test) => test.id === reportId);
 
   function updateFile(nextFile) {
     setFile(nextFile);
@@ -31,10 +33,14 @@ export function ReportUpload({ copy, onUploaded }) {
     setIsSubmitting(true);
 
     try {
-      await labService.uploadReport({ file, patientId, testType, note });
+      await labService.uploadReport({
+        file,
+        reportId,
+        testType: selectedTest?.name,
+        note,
+      });
       setFile(null);
-      setPatientId('');
-      setTestType('');
+      setReportId('');
       setNote('');
       setConfirmed(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -108,32 +114,26 @@ export function ReportUpload({ copy, onUploaded }) {
               {copy.upload.reportDetails}
             </h3>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Input
-                label={copy.upload.patientLabel}
-                placeholder={copy.upload.patientPlaceholder}
-                value={patientId}
-                onChange={(event) => {
-                  setPatientId(event.target.value);
-                  setNotification(null);
-                }}
-              />
+            <div className="mt-4">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-ink-800" htmlFor="lab-test-type">
-                  {copy.upload.testLabel}
+                  {copy.upload.patientLabel}
                 </label>
                 <select
                   id="lab-test-type"
-                  value={testType}
+                  required
+                  value={reportId}
                   onChange={(event) => {
-                    setTestType(event.target.value);
+                    setReportId(event.target.value);
                     setNotification(null);
                   }}
                   className="min-h-12 w-full rounded-2xl border border-ink-100 bg-white px-4 text-base text-ink-900 outline-none transition focus:border-medical-500 focus:ring-4 focus:ring-medical-100"
                 >
-                  <option value="" disabled>{copy.upload.testPlaceholder}</option>
-                  {copy.upload.testOptions.map((option) => (
-                    <option key={option} value={option}>{option}</option>
+                  <option value="" disabled>{copy.upload.patientPlaceholder}</option>
+                  {availableTests.map((test) => (
+                    <option key={test.id} value={test.id}>
+                      {test.patient.name} · {test.name} · {test.id}
+                    </option>
                   ))}
                 </select>
               </div>

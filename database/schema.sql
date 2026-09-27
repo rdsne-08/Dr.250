@@ -14,3 +14,4 @@
 \ir migrations/010_access_sessions.sql
 \ir migrations/011_audit_logs.sql
 \ir migrations/012_embeddings.sql
+\ir migrations/013_ai_rag_chunks.sql

@@ -6,6 +6,7 @@ import { env } from './config/environment.js';
 import { testDatabaseConnection } from './database/pool.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { adminRouter } from './modules/admin/routes/admin.routes.js';
+import { aiRouter } from './modules/ai/routes/ai.routes.js';
 import { authRouter } from './modules/auth/routes/auth.routes.js';
 import { doctorRouter } from './modules/doctors/routes/doctor.routes.js';
 import { labRouter } from './modules/labs/routes/lab.routes.js';
@@ -56,6 +57,7 @@ export function createApp({ databaseCheck = testDatabaseConnection } = {}) {
   app.use('/api/doctors', doctorRouter);
   app.use('/api/labs', labRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/ai', aiRouter);
   app.use('/api/medical-records', medicalRecordRouter);
   app.use('/api/prescriptions', prescriptionRouter);
   app.use('/api/reports', reportRouter);

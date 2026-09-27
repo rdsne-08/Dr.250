@@ -34,6 +34,38 @@ export async function getPatientReports(user, patientId, database = pool) {
   return result.rows;
 }
 
+export async function getAuthorizedReportFile(user, reportId, database = pool) {
+  const result = await query(
+    `
+      SELECT report.id, report.patient_id, report.laboratory_id,
+             report.test_name, report.report_url AS file_url, report.status
+      FROM public.lab_reports AS report
+      WHERE report.id = $1
+      LIMIT 1
+    `,
+    [reportId],
+    database,
+  );
+  const report = result.rows[0];
+
+  if (!report || report.status !== 'COMPLETED' || !report.file_url) {
+    throw new HttpError(404, 'Completed report not found.', { code: 'REPORT_NOT_FOUND' });
+  }
+
+  if (user.role === 'LAB') {
+    const laboratory = await getVerifiedLab(user.id, database);
+    if (laboratory.id !== report.laboratory_id) {
+      throw new HttpError(403, 'This report is assigned to another laboratory.', {
+        code: 'REPORT_ACCESS_DENIED',
+      });
+    }
+  } else {
+    await authorizePatientDataAccess(user, report.patient_id, database);
+  }
+
+  return report;
+}
+
 export async function createReportRequest(user, report, database = pool, suppliedDoctor) {
   const doctor = suppliedDoctor ?? await getVerifiedDoctor(user.id, database);
   await assertDoctorPatientAccess(doctor, report.patientId, database);

@@ -33,12 +33,27 @@ function format(template, values) {
   );
 }
 
-export function TestManagement({ copy, tests }) {
+export function TestManagement({ copy, onStatusChange, tests }) {
   const [activeFilter, setActiveFilter] = useState('all');
+  const [updatingId, setUpdatingId] = useState(null);
+  const [updateError, setUpdateError] = useState(null);
   const visibleTests = useMemo(
     () => tests.filter((test) => activeFilter === 'all' || test.status === activeFilter),
     [activeFilter, tests],
   );
+
+  async function advanceStatus(test) {
+    const nextStatus = test.rawStatus === 'REQUESTED' ? 'SAMPLE_COLLECTED' : 'PROCESSING';
+    setUpdatingId(test.id);
+    setUpdateError(null);
+    try {
+      await onStatusChange(test.id, nextStatus);
+    } catch (error) {
+      setUpdateError(error?.message || copy.upload.errorMessage);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   return (
     <section id="test-management" className="scroll-mt-24" aria-labelledby="test-management-title">
@@ -55,6 +70,11 @@ export function TestManagement({ copy, tests }) {
       </div>
 
       <Card className="mt-6 p-4 sm:p-5">
+        {updateError ? (
+          <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+            {updateError}
+          </p>
+        ) : null}
         <div className="flex flex-col gap-4 border-b border-ink-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-2 overflow-x-auto pb-1">
             {filters.map((filter) => (
@@ -143,9 +163,19 @@ export function TestManagement({ copy, tests }) {
                       <StatusIcon className="size-3.5" aria-hidden="true" />
                       {copy.tests.statuses[test.status]}
                     </span>
-                    <Button variant="ghost" size="icon" aria-label={`${copy.tests.openTest}: ${test.patient.name}`}>
-                      <ArrowRight className="size-4" aria-hidden="true" />
-                    </Button>
+                    {['REQUESTED', 'SAMPLE_COLLECTED'].includes(test.rawStatus) ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        loading={updatingId === test.id}
+                        onClick={() => advanceStatus(test)}
+                      >
+                        {test.rawStatus === 'REQUESTED'
+                          ? copy.tests.statuses.pending
+                          : copy.tests.statuses.processing}
+                        {updatingId !== test.id ? <ArrowRight className="size-4" aria-hidden="true" /> : null}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </article>

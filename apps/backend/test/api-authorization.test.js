@@ -9,7 +9,10 @@ process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'test-service-role-key';
 const { createAuthenticate } = await import('../src/modules/auth/middleware/auth.js');
 const { uploadAssignedReport } = await import('../src/modules/labs/services/lab.service.js');
 const { assertPatientOwnership } = await import('../src/modules/patients/services/patient.service.js');
-const { getPatientReports } = await import('../src/modules/reports/services/report.service.js');
+const {
+  getAuthorizedReportFile,
+  getPatientReports,
+} = await import('../src/modules/reports/services/report.service.js');
 const { authorizePatientDataAccess } = await import(
   '../src/modules/sessions/services/access.service.js'
 );
@@ -191,4 +194,33 @@ test('laboratory cannot update a report assigned to another laboratory', async (
   assert.deepEqual(ownershipQuery.values, ['report-for-lab-2', 'lab-1', null]);
   assert.ok(calls.some((call) => call.text === 'ROLLBACK'));
   assert.equal(released, true);
+});
+
+test('patient cannot download a completed report owned by another patient', async () => {
+  const database = {
+    async query(text) {
+      if (text.includes('FROM public.lab_reports')) {
+        return {
+          rows: [{
+            id: 'report-1',
+            patient_id: 'patient-other',
+            laboratory_id: 'lab-1',
+            test_name: 'CBC',
+            file_url: 'http://localhost/api/reports/report-1/file',
+            status: 'COMPLETED',
+          }],
+        };
+      }
+      return { rows: [] };
+    },
+  };
+
+  await assert.rejects(
+    getAuthorizedReportFile(
+      { id: 'patient-user', role: 'PATIENT' },
+      'report-1',
+      database,
+    ),
+    (error) => error.statusCode === 403 && error.code === 'PATIENT_ACCESS_DENIED',
+  );
 });

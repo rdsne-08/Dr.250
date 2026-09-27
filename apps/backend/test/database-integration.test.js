@@ -1,5 +1,12 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+import dotenv from 'dotenv';
+
+const testDirectory = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(testDirectory, '../../../.env'), quiet: true });
 
 const integrationUrl = process.env.DATABASE_INTEGRATION_URL;
 
@@ -8,6 +15,54 @@ if (integrationUrl) {
   process.env.SUPABASE_URL ||= 'https://example.supabase.co';
   process.env.SUPABASE_ANON_KEY ||= 'database-integration-anon-key';
   process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'database-integration-service-role-key';
+}
+
+const patientUserId = '90000000-0000-4000-8000-000000000001';
+const doctorUserId = '90000000-0000-4000-8000-000000000002';
+const labUserId = '90000000-0000-4000-8000-000000000003';
+const integrationUserIds = [patientUserId, doctorUserId, labUserId];
+
+async function cleanupIntegrationData(query) {
+  await query(
+    `
+      DELETE FROM public.audit_logs
+      WHERE entity_id IN (
+        SELECT doctor.id FROM public.doctors AS doctor
+        INNER JOIN public.profiles AS profile ON profile.id = doctor.profile_id
+        WHERE profile.user_id = ANY($1::uuid[])
+        UNION
+        SELECT laboratory.id FROM public.laboratories AS laboratory
+        INNER JOIN public.profiles AS profile ON profile.id = laboratory.profile_id
+        WHERE profile.user_id = ANY($1::uuid[])
+      )
+    `,
+    [integrationUserIds],
+  );
+  await query(
+    `DELETE FROM public.lab_reports WHERE patient_id IN (
+       SELECT patient.id FROM public.patients AS patient
+       INNER JOIN public.profiles AS profile ON profile.id = patient.profile_id
+       WHERE profile.user_id = ANY($1::uuid[])
+     )`,
+    [integrationUserIds],
+  );
+  await query(
+    `DELETE FROM public.prescriptions WHERE patient_id IN (
+       SELECT patient.id FROM public.patients AS patient
+       INNER JOIN public.profiles AS profile ON profile.id = patient.profile_id
+       WHERE profile.user_id = ANY($1::uuid[])
+     )`,
+    [integrationUserIds],
+  );
+  await query(
+    `DELETE FROM public.medical_records WHERE patient_id IN (
+       SELECT patient.id FROM public.patients AS patient
+       INNER JOIN public.profiles AS profile ON profile.id = patient.profile_id
+       WHERE profile.user_id = ANY($1::uuid[])
+     )`,
+    [integrationUserIds],
+  );
+  await query(`DELETE FROM public.users WHERE id = ANY($1::uuid[])`, [integrationUserIds]);
 }
 
 test('backend services complete the PostgreSQL healthcare data flow', {
@@ -45,12 +100,10 @@ test('backend services complete the PostgreSQL healthcare data flow', {
     '../src/modules/sessions/services/session.service.js'
   );
 
-  const patientUserId = '90000000-0000-4000-8000-000000000001';
-  const doctorUserId = '90000000-0000-4000-8000-000000000002';
-  const labUserId = '90000000-0000-4000-8000-000000000003';
   let server;
 
   try {
+    await cleanupIntegrationData(query);
     assert.equal(await testDatabaseConnection(), true);
 
     server = await new Promise((resolve) => {
@@ -76,9 +129,8 @@ test('backend services complete the PostgreSQL healthcare data flow', {
       role: 'PATIENT',
     });
     const patientResult = await query(
-      `INSERT INTO public.patients (profile_id, blood_group)
-       VALUES ($1, 'A+') RETURNING id`,
-      [patientProfile.profile_id],
+      `UPDATE public.patients SET blood_group = 'A+' WHERE id = $1 RETURNING id`,
+      [patientProfile.patient_id],
     );
     const patientId = patientResult.rows[0].id;
 
@@ -104,12 +156,12 @@ test('backend services complete the PostgreSQL healthcare data flow', {
       email: 'flow.doctor@example.com',
       fullName: 'Dr. Flow Doctor',
       role: 'DOCTOR',
+      specialization: 'General Medicine',
+      licenseNumber: 'BMDC-FLOW-001',
     });
     await query(
-      `INSERT INTO public.doctors
-         (profile_id, specialization, license_number, verification_status)
-       VALUES ($1, 'General Medicine', 'BMDC-FLOW-001', 'VERIFIED')`,
-      [doctorProfile.profile_id],
+      `UPDATE public.doctors SET verification_status = 'VERIFIED' WHERE id = $1`,
+      [doctorProfile.doctor_id],
     );
     const doctorUser = { id: doctorUserId, role: 'DOCTOR' };
     const doctor = await getVerifiedDoctor(doctorUserId);
@@ -141,12 +193,12 @@ test('backend services complete the PostgreSQL healthcare data flow', {
       email: 'flow.lab@example.com',
       fullName: 'Flow Laboratory Operator',
       role: 'LAB',
+      labName: 'Flow Diagnostic Centre',
+      licenseNumber: 'DGHS-FLOW-001',
     });
     await query(
-      `INSERT INTO public.laboratories
-         (profile_id, lab_name, license_number, verification_status)
-       VALUES ($1, 'Flow Diagnostic Centre', 'DGHS-FLOW-001', 'VERIFIED')`,
-      [labProfile.profile_id],
+      `UPDATE public.laboratories SET verification_status = 'VERIFIED' WHERE id = $1`,
+      [labProfile.laboratory_id],
     );
     const laboratory = await getVerifiedLab(labUserId);
 
@@ -205,6 +257,7 @@ test('backend services complete the PostgreSQL healthcare data flow', {
         server.close((error) => (error ? reject(error) : resolve()));
       });
     }
+    await cleanupIntegrationData(query);
     await closeDatabase();
   }
 });

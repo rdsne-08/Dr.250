@@ -25,10 +25,9 @@ function format(template, values) {
   );
 }
 
-export function PatientManagement({ copy, patients }) {
+export function PatientManagement({ copy, onSelectPatient, patients, selectedPatientId }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [query, setQuery] = useState('');
-  const [selectedPatientId, setSelectedPatientId] = useState(patients[0]?.id);
 
   const visiblePatients = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -138,7 +137,7 @@ export function PatientManagement({ copy, patients }) {
                         ? 'border-health-300 bg-health-50/80 shadow-card'
                         : 'border-ink-100 bg-white hover:border-health-200 hover:bg-canvas',
                     )}
-                    onClick={() => setSelectedPatientId(patient.id)}
+                    onClick={() => onSelectPatient(patient.id)}
                   >
                     <div className="flex items-start gap-3">
                       <Avatar name={patient.name} size="md" />

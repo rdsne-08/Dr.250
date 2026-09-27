@@ -32,6 +32,19 @@ function validatePassword(value) {
   return value;
 }
 
+function validateRequiredText(value, field, maxLength) {
+  if (typeof value !== 'string') {
+    throw new HttpError(400, `${field} is required.`);
+  }
+
+  const normalized = value.trim();
+  if (normalized.length < 1 || normalized.length > maxLength) {
+    throw new HttpError(400, `${field} must be between 1 and ${maxLength} characters.`);
+  }
+
+  return normalized;
+}
+
 export function validateRegistration(request, _response, next) {
   try {
     requireJsonObject(request.body);
@@ -56,12 +69,36 @@ export function validateRegistration(request, _response, next) {
       });
     }
 
-    request.validatedBody = {
+    const validatedBody = {
       email: normalizeEmail(request.body.email),
       password: validatePassword(request.body.password),
       fullName,
       role,
     };
+
+    if (role === 'DOCTOR') {
+      validatedBody.specialization = validateRequiredText(
+        request.body.specialization,
+        'specialization',
+        120,
+      );
+      validatedBody.licenseNumber = validateRequiredText(
+        request.body.license_number,
+        'license_number',
+        80,
+      );
+    }
+
+    if (role === 'LAB') {
+      validatedBody.labName = validateRequiredText(request.body.lab_name, 'lab_name', 160);
+      validatedBody.licenseNumber = validateRequiredText(
+        request.body.license_number,
+        'license_number',
+        80,
+      );
+    }
+
+    request.validatedBody = validatedBody;
 
     next();
   } catch (error) {

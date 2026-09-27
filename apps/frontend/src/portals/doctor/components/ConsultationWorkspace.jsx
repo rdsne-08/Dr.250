@@ -1,16 +1,24 @@
 import {
   ArrowRight,
   CalendarDays,
-  CheckCircle2,
   FilePenLine,
   Laptop,
   MapPin,
-  Plus,
   Save,
   ShieldAlert,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-import { Avatar, Badge, Button, Card, EmptyState } from '../../../components/ui/index.js';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Notification,
+} from '../../../components/ui/index.js';
+import { doctorService } from '../../../services/doctorService.js';
 
 function format(template, values) {
   return Object.entries(values).reduce(
@@ -19,7 +27,50 @@ function format(template, values) {
   );
 }
 
-export function ConsultationWorkspace({ appointments, copy }) {
+const emptyPrescription = {
+  dosage: '',
+  duration: '',
+  instructions: '',
+  medicine: '',
+};
+
+export function ConsultationWorkspace({ appointments, copy, onSaved, patient }) {
+  const [prescription, setPrescription] = useState(emptyPrescription);
+  const [error, setError] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setPrescription(emptyPrescription);
+    setError(null);
+    setSaved(false);
+  }, [patient?.id]);
+
+  function updatePrescription(field, value) {
+    setPrescription((current) => ({ ...current, [field]: value }));
+    setError(null);
+    setSaved(false);
+  }
+
+  async function handlePrescriptionSubmit(event) {
+    event.preventDefault();
+    if (!patient) return;
+
+    setIsSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      await doctorService.createPrescription({ patientId: patient.id, ...prescription });
+      setPrescription(emptyPrescription);
+      setSaved(true);
+      await onSaved?.();
+    } catch (saveError) {
+      setError(saveError?.message || copy.consultation.saveError);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   return (
     <section id="consultation-workspace" className="scroll-mt-24" aria-labelledby="consultation-title">
       <div>
@@ -114,54 +165,70 @@ export function ConsultationWorkspace({ appointments, copy }) {
               </h3>
               <p className="mt-1.5 text-xs leading-5 text-ink-500">{copy.consultation.prescriptionHint}</p>
             </div>
-            <Badge variant="neutral">Riddhi Das · DR250-2048</Badge>
+            <Badge variant="neutral">
+              {patient ? `${patient.name} · ${patient.id}` : copy.consultation.noPatient}
+            </Badge>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-2xl border border-ink-100">
-            <div className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-px bg-ink-100 text-xs font-bold text-ink-600">
-              <div className="bg-ink-50 px-4 py-3">{copy.consultation.medicine}</div>
-              <div className="bg-ink-50 px-4 py-3">{copy.consultation.dosage}</div>
+          <form className="mt-5" onSubmit={handlePrescriptionSubmit}>
+            {saved ? (
+              <Notification
+                className="mb-4"
+                title={copy.consultation.saveSuccessTitle}
+                message={copy.consultation.saveSuccess}
+              />
+            ) : null}
+            {error ? (
+              <Notification
+                className="mb-4"
+                variant="error"
+                title={copy.consultation.saveErrorTitle}
+                message={error}
+                onDismiss={() => setError(null)}
+              />
+            ) : null}
+
+            <fieldset disabled={!patient || isSaving} className="grid gap-4 sm:grid-cols-2">
+              <Input
+                required
+                label={copy.consultation.medicine}
+                placeholder={copy.consultation.medicinePlaceholder}
+                value={prescription.medicine}
+                onChange={(event) => updatePrescription('medicine', event.target.value)}
+              />
+              <Input
+                required
+                label={copy.consultation.dosage}
+                placeholder={copy.consultation.dosagePlaceholder}
+                value={prescription.dosage}
+                onChange={(event) => updatePrescription('dosage', event.target.value)}
+              />
+              <Input
+                label={copy.consultation.duration}
+                placeholder={copy.consultation.durationPlaceholder}
+                value={prescription.duration}
+                onChange={(event) => updatePrescription('duration', event.target.value)}
+              />
+              <Input
+                required
+                label={copy.consultation.instructions}
+                placeholder={copy.consultation.instructionsPlaceholder}
+                value={prescription.instructions}
+                onChange={(event) => updatePrescription('instructions', event.target.value)}
+              />
+            </fieldset>
+
+            <div className="mt-5 flex flex-col gap-3 border-t border-ink-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="flex max-w-sm items-start gap-2 text-[0.68rem] leading-5 text-ink-500">
+                <ShieldAlert className="mt-0.5 size-3.5 shrink-0 text-health-600" aria-hidden="true" />
+                {patient ? copy.consultation.submitNotice : copy.consultation.selectPatientNotice}
+              </p>
+              <Button disabled={!patient} loading={isSaving} size="sm" type="submit">
+                {!isSaving ? <Save className="size-4" aria-hidden="true" /> : null}
+                {copy.consultation.submitPrescription}
+              </Button>
             </div>
-            <div className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-px bg-ink-100">
-              <div className="min-h-16 bg-white p-3">
-                <div className="h-10 rounded-xl border border-dashed border-ink-100 bg-canvas" />
-              </div>
-              <div className="min-h-16 bg-white p-3">
-                <div className="h-10 rounded-xl border border-dashed border-ink-100 bg-canvas" />
-              </div>
-            </div>
-          </div>
-
-          <Button className="mt-3" variant="ghost" size="sm">
-            <Plus className="size-4" aria-hidden="true" />
-            {copy.consultation.addMedicine}
-          </Button>
-
-          <div className="mt-5 border-t border-ink-100 pt-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-ink-900">{copy.consultation.notes}</h3>
-                <p className="mt-1 text-xs text-ink-500">{copy.consultation.notesHint}</p>
-              </div>
-              <CheckCircle2 className="size-5 text-health-500" aria-hidden="true" />
-            </div>
-            <textarea
-              className="mt-3 min-h-32 w-full resize-y rounded-2xl border border-ink-100 bg-canvas px-4 py-3 text-sm leading-6 text-ink-900 outline-none transition placeholder:text-ink-300 focus:border-health-500 focus:ring-4 focus:ring-health-100"
-              placeholder={copy.consultation.notesPlaceholder}
-              aria-label={copy.consultation.notes}
-            />
-          </div>
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="flex max-w-sm items-start gap-2 text-[0.68rem] leading-5 text-ink-500">
-              <ShieldAlert className="mt-0.5 size-3.5 shrink-0 text-health-600" aria-hidden="true" />
-              {copy.consultation.draftNotice}
-            </p>
-            <Button size="sm">
-              <Save className="size-4" aria-hidden="true" />
-              {copy.consultation.saveDraft}
-            </Button>
-          </div>
+          </form>
         </Card>
       </div>
     </section>

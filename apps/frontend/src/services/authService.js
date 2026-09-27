@@ -124,13 +124,41 @@ async function register(details) {
     throw new AuthServiceError('Password confirmation does not match.', 'PASSWORD_MISMATCH');
   }
 
+  if (details.role === AUTH_ROLES.DOCTOR && !details.specialization?.trim()) {
+    throw new AuthServiceError('Please enter your specialization.', 'INVALID_SPECIALIZATION');
+  }
+
+  if (details.role === AUTH_ROLES.DOCTOR && !details.licenseNumber?.trim()) {
+    throw new AuthServiceError('Please enter your license number.', 'INVALID_LICENSE_NUMBER');
+  }
+
+  if (details.role === AUTH_ROLES.LAB && !details.labName?.trim()) {
+    throw new AuthServiceError('Please enter the laboratory name.', 'INVALID_LAB_NAME');
+  }
+
+  if (details.role === AUTH_ROLES.LAB && !details.licenseNumber?.trim()) {
+    throw new AuthServiceError('Please enter the laboratory license number.', 'INVALID_LAB_LICENSE_NUMBER');
+  }
+
   try {
-    await apiClient.post(AUTH_API_CONTRACT.register, {
+    const registration = {
       email: details.email.trim(),
       full_name: details.name.trim(),
       password: details.password,
       role: details.role,
-    }, { auth: false });
+    };
+
+    if (details.role === AUTH_ROLES.DOCTOR) {
+      registration.specialization = details.specialization.trim();
+      registration.license_number = details.licenseNumber.trim();
+    }
+
+    if (details.role === AUTH_ROLES.LAB) {
+      registration.lab_name = details.labName.trim();
+      registration.license_number = details.licenseNumber.trim();
+    }
+
+    await apiClient.post(AUTH_API_CONTRACT.register, registration, { auth: false });
 
     return login({
       email: details.email,

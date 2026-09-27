@@ -5,6 +5,11 @@ const endpoints = Object.freeze({
   patients: '/api/doctors/patients',
   prescriptions: '/api/doctors/prescriptions',
   sessions: '/api/doctors/sessions',
+  laboratories: '/api/doctors/laboratories',
+  reportRequests: '/api/reports',
+  medicalRecords: (patientId) => `/api/medical-records/${patientId}`,
+  patientPrescriptions: (patientId) => `/api/prescriptions/${patientId}`,
+  reports: (patientId) => `/api/reports/${patientId}`,
 });
 
 function localized(value) {
@@ -43,8 +48,34 @@ function formatDate(value) {
   };
 }
 
-function adaptPatient(patient) {
+function adaptPatient(patient, records = {}) {
   const lastAccess = formatDate(patient.last_accessed_at);
+  const history = [
+    ...(records.medical ?? []).map((record) => ({
+      at: record.date,
+      title: record.diagnosis || 'Medical record',
+      detail: record.notes,
+    })),
+    ...(records.prescriptions ?? []).map((prescription) => ({
+      at: prescription.created_at,
+      title: `Prescription: ${prescription.medicine}`,
+      detail: [prescription.dosage, prescription.duration, prescription.instructions]
+        .filter(Boolean)
+        .join(' Â· '),
+    })),
+    ...(records.reports ?? []).map((report) => ({
+      at: report.created_at,
+      title: `Lab report: ${report.test_name}`,
+      detail: report.status,
+    })),
+  ]
+    .sort((left, right) => new Date(right.at) - new Date(left.at))
+    .map((item) => ({
+      date: formatDate(item.at),
+      title: localized(item.title),
+      detail: localized(item.detail),
+    }));
+
   return {
     id: patient.id,
     name: localized(patient.full_name),
@@ -59,7 +90,7 @@ function adaptPatient(patient) {
     },
     vitals: { bloodPressure: '—', pulse: '—', bloodGroup: patient.blood_group ?? '—' },
     flags: [],
-    history: patient.last_accessed_at
+    history: history.length ? history : patient.last_accessed_at
       ? [{
           date: lastAccess,
           title: localized('Secure record access'),
@@ -70,19 +101,9 @@ function adaptPatient(patient) {
 }
 
 async function getDashboard() {
-  const [profilePayload, patientsPayload, sessionsPayload] = await Promise.all([
-    apiClient.get(endpoints.profile),
-    apiClient.get(endpoints.patients),
-    apiClient.get(endpoints.sessions),
-  ]);
+  const profilePayload = await apiClient.get(endpoints.profile);
   const doctor = profilePayload.doctor;
-  const patients = patientsPayload.patients ?? [];
-  const sessions = sessionsPayload.sessions ?? [];
-  const activeSessions = sessions.filter(
-    (session) => !session.revoked_at && new Date(session.expires_at) > new Date(),
-  );
-
-  return {
+  const dashboard = {
     doctor: {
       name: localized(doctor.full_name),
       id: doctor.id,
@@ -91,14 +112,72 @@ async function getDashboard() {
       hospital: doctor.email,
       availability: 'available',
     },
+    verificationStatus: doctor.verification_status,
     stats: [
-      { id: 'patients', value: patients.length, trend: '' },
+      { id: 'patients', value: 0, trend: '' },
       { id: 'reports', value: 0, trend: '' },
-      { id: 'consultations', value: activeSessions.length, trend: '' },
+      { id: 'consultations', value: 0, trend: '' },
     ],
     appointments: [],
-    patients: patients.map(adaptPatient),
+    laboratories: [],
+    patients: [],
   };
+
+  if (doctor.verification_status !== 'VERIFIED') return dashboard;
+
+  const [patientsPayload, sessionsPayload, laboratoriesPayload] = await Promise.all([
+    apiClient.get(endpoints.patients),
+    apiClient.get(endpoints.sessions),
+    apiClient.get(endpoints.laboratories),
+  ]);
+  const patients = patientsPayload.patients ?? [];
+  const sessions = sessionsPayload.sessions ?? [];
+  const patientRecords = await Promise.all(
+    patients.map(async (patient) => {
+      const [medicalPayload, prescriptionsPayload, reportsPayload] = await Promise.all([
+        apiClient.get(endpoints.medicalRecords(patient.id)),
+        apiClient.get(endpoints.patientPrescriptions(patient.id)),
+        apiClient.get(endpoints.reports(patient.id)),
+      ]);
+      return {
+        medical: medicalPayload.records ?? [],
+        prescriptions: prescriptionsPayload.prescriptions ?? [],
+        reports: reportsPayload.reports ?? [],
+      };
+    }),
+  );
+  const activeSessions = sessions.filter(
+    (session) => !session.revoked_at && new Date(session.expires_at) > new Date(),
+  );
+
+  return {
+    ...dashboard,
+    stats: [
+      { id: 'patients', value: patients.length, trend: '' },
+      {
+        id: 'reports',
+        value: patientRecords.reduce((total, record) => total + record.reports.length, 0),
+        trend: '',
+      },
+      { id: 'consultations', value: activeSessions.length, trend: '' },
+    ],
+    laboratories: (laboratoriesPayload.laboratories ?? []).map((laboratory) => ({
+      id: laboratory.id,
+      name: localized(laboratory.lab_name),
+      licenseNumber: laboratory.license_number,
+    })),
+    patients: patients.map((patient, index) => adaptPatient(patient, patientRecords[index])),
+  };
+}
+
+async function createLabRequest(details) {
+  const payload = await apiClient.post(endpoints.reportRequests, {
+    patient_id: details.patientId,
+    laboratory_id: details.laboratoryId,
+    test_name: details.testName,
+    status: 'REQUESTED',
+  });
+  return payload.report;
 }
 
 async function createPrescription(details) {
@@ -113,6 +192,7 @@ async function createPrescription(details) {
 }
 
 export const doctorService = Object.freeze({
+  createLabRequest,
   createPrescription,
   getAppointments: async () => [],
   getDashboard,

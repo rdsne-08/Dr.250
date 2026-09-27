@@ -121,11 +121,18 @@ export function LabDashboard() {
         />
 
         <div className="mt-9">
-          <TestManagement copy={copy} tests={localizedData.tests} />
+          <TestManagement
+            copy={copy}
+            tests={localizedData.tests}
+            onStatusChange={async (reportId, status) => {
+              await labService.updateReportStatus(reportId, status);
+              reload();
+            }}
+          />
         </div>
 
         <div className="mt-9 grid items-start gap-6 2xl:grid-cols-[minmax(0,1.4fr)_minmax(21rem,0.6fr)]">
-          <ReportUpload copy={copy} onUploaded={reload} />
+          <ReportUpload copy={copy} onUploaded={reload} tests={localizedData.tests} />
           <DoctorRequests copy={copy} requests={localizedData.doctorRequests} />
         </div>
 
