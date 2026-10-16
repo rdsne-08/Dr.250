@@ -107,7 +107,6 @@ async function getDashboard() {
       specialty: 'internalMedicine',
       expiresAt: localizedDate(currentSession?.expires_at),
     },
-    assistant: { suggestedPrompt: 'explainBloodTest' },
   };
 }
 

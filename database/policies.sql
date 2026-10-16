@@ -164,7 +164,6 @@ ALTER TABLE public.prescriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lab_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.access_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.medical_embeddings ENABLE ROW LEVEL SECURITY;
 
 -- Every application table receives the same relationally-derived administrator
 -- override. Supabase's service role also bypasses RLS at the database role level.
@@ -175,7 +174,7 @@ BEGIN
     FOREACH table_name IN ARRAY ARRAY[
         'users', 'profiles', 'patients', 'doctors', 'laboratories',
         'medical_records', 'prescriptions', 'lab_reports', 'access_sessions',
-        'audit_logs', 'medical_embeddings'
+        'audit_logs'
     ]
     LOOP
         EXECUTE format(
@@ -351,27 +350,5 @@ FOR SELECT USING (
 DROP POLICY IF EXISTS audit_logs_select_self ON public.audit_logs;
 CREATE POLICY audit_logs_select_self ON public.audit_logs
 FOR SELECT USING (user_id = private.current_user_id());
-
-DROP POLICY IF EXISTS medical_embeddings_patient_select ON public.medical_embeddings;
-CREATE POLICY medical_embeddings_patient_select ON public.medical_embeddings
-FOR SELECT USING (
-    EXISTS (
-        SELECT 1
-        FROM public.medical_records AS record
-        WHERE record.id = medical_embeddings.medical_record_id
-          AND record.patient_id = private.current_patient_id()
-    )
-);
-
-DROP POLICY IF EXISTS medical_embeddings_doctor_select_authorized ON public.medical_embeddings;
-CREATE POLICY medical_embeddings_doctor_select_authorized ON public.medical_embeddings
-FOR SELECT USING (
-    EXISTS (
-        SELECT 1
-        FROM public.medical_records AS record
-        WHERE record.id = medical_embeddings.medical_record_id
-          AND private.has_active_doctor_access(record.patient_id)
-    )
-);
 
 COMMIT;

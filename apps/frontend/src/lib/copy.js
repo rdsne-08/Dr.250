@@ -46,10 +46,6 @@ export const siteCopy = {
           title: 'Laboratory reports',
           description: 'Receive and revisit diagnostic reports in one dependable place, whenever you need them.',
         },
-        {
-          title: 'AI health assistant',
-          description: 'Turn complex records into simpler explanations while keeping clinical decisions with professionals.',
-        },
       ],
     },
     process: {
@@ -123,10 +119,6 @@ export const siteCopy = {
         {
           title: 'ল্যাব রিপোর্ট',
           description: 'ডায়াগনস্টিক রিপোর্ট সরাসরি গ্রহণ করুন এবং প্রয়োজনমতো যেকোনো সময় দেখুন।',
-        },
-        {
-          title: 'AI স্বাস্থ্য সহকারী',
-          description: 'জটিল স্বাস্থ্য নথি সহজ ভাষায় বুঝুন; চিকিৎসার সিদ্ধান্ত থাকবে বিশেষজ্ঞের হাতে।',
         },
       ],
     },

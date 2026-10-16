@@ -9,7 +9,6 @@ import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
 import { patientService } from '../../../services/patientService.js';
 import { getApiErrorMessage } from '../../../services/apiErrorMessages.js';
-import { AIAssistantCard } from '../components/AIAssistantCard.jsx';
 import { DoctorAccessCard } from '../components/DoctorAccessCard.jsx';
 import { HealthOverview } from '../components/HealthOverview.jsx';
 import { HealthTimeline } from '../components/HealthTimeline.jsx';
@@ -118,7 +117,6 @@ export function PatientDashboard() {
 
         <div className="mt-5 grid items-start gap-5 xl:grid-cols-2">
           <DoctorAccessCard copy={copy} access={localizedData.doctorAccess} />
-          <AIAssistantCard copy={copy} assistant={localizedData.assistant} />
         </div>
       </main>
     </PatientLayout>

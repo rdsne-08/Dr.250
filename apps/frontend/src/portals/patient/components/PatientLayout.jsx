@@ -1,6 +1,5 @@
 import {
   Bell,
-  Bot,
   FileHeart,
   FlaskConical,
   House,
@@ -24,7 +23,6 @@ const navigation = [
   { id: 'doctors', href: '#quick-actions', icon: Stethoscope },
   { id: 'reports', href: '#health-timeline', icon: FlaskConical },
   { id: 'prescriptions', href: '#health-overview', icon: Pill },
-  { id: 'assistant', href: '#ai-assistant', icon: Bot },
   { id: 'profile', href: '#patient-profile', icon: UserRound },
 ];
 
@@ -56,7 +54,7 @@ function NavigationItems({ compact = false, copy, onNavigate }) {
 export function PatientLayout({ children, copy, onToggleLanguage, patient }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const mobilePrimaryItems = navigation.filter(({ id }) =>
-    ['dashboard', 'records', 'assistant', 'profile'].includes(id),
+    ['dashboard', 'records', 'profile'].includes(id),
   );
 
   return (
@@ -125,7 +123,7 @@ export function PatientLayout({ children, copy, onToggleLanguage, patient }) {
         className="fixed inset-x-3 bottom-3 z-40 rounded-3xl border border-ink-100 bg-white/95 px-2 py-1.5 shadow-lift backdrop-blur-xl lg:hidden"
         aria-label={copy.navigationLabel}
       >
-        <div className="grid grid-cols-5 items-center">
+        <div className="grid grid-cols-4 items-center">
           {mobilePrimaryItems.map(({ href, icon: Icon, id }) => (
             <a
               key={id}

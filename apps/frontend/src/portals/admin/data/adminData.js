@@ -152,6 +152,5 @@ export const adminData = Object.freeze({
   systemHealth: [
     { id: 'database', status: 'healthy', response: '42 ms' },
     { id: 'authentication', status: 'healthy', response: '68 ms' },
-    { id: 'ai', status: 'monitored', response: '124 ms' },
   ],
 });

@@ -29,7 +29,4 @@ export const patientData = Object.freeze({
     specialty: 'internalMedicine',
     expiresAt: { en: '4:30 PM', bn: 'বিকেল ৪:৩০' },
   },
-  assistant: {
-    suggestedPrompt: 'explainBloodTest',
-  },
 });

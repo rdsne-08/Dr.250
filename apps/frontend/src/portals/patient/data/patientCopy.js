@@ -8,14 +8,12 @@ export const patientCopy = {
       doctors: 'Doctors',
       reports: 'Lab Reports',
       prescriptions: 'Prescriptions',
-      assistant: 'AI Assistant',
       profile: 'Profile',
       more: 'More',
     },
     navShort: {
       dashboard: 'Dashboard',
       records: 'Records',
-      assistant: 'AI Assistant',
       profile: 'Profile',
     },
     sidebar: {
@@ -120,17 +118,6 @@ export const patientCopy = {
       specialty: { internalMedicine: 'Internal Medicine' },
       secureNote: 'Only the information you approve will be visible.',
     },
-    assistant: {
-      eyebrow: 'AI health assistant',
-      title: 'Ask about your health records',
-      description: 'Get simpler explanations from the information already in your health space.',
-      promptLabel: 'You could ask',
-      prompts: {
-        explainBloodTest: '“Can you explain my latest blood test in simple words?”',
-      },
-      openAssistant: 'Talk to the assistant',
-      safety: 'For understanding records—not replacing medical advice.',
-    },
     states: {
       emptyRecordsTitle: 'No medical records yet',
       emptyRecordsBody: 'Upload your first document to begin a clear, connected health history.',
@@ -151,14 +138,12 @@ export const patientCopy = {
       doctors: 'ডাক্তার',
       reports: 'ল্যাব রিপোর্ট',
       prescriptions: 'প্রেসক্রিপশন',
-      assistant: 'AI সহকারী',
       profile: 'প্রোফাইল',
       more: 'আরও',
     },
     navShort: {
       dashboard: 'ড্যাশবোর্ড',
       records: 'নথি',
-      assistant: 'AI সহকারী',
       profile: 'প্রোফাইল',
     },
     sidebar: {
@@ -262,17 +247,6 @@ export const patientCopy = {
       expires: 'অ্যাক্সেসের মেয়াদ {time}-এ শেষ হবে',
       specialty: { internalMedicine: 'ইন্টারনাল মেডিসিন' },
       secureNote: 'আপনি অনুমোদন করেছেন শুধু সেই তথ্যই দেখা যাবে।',
-    },
-    assistant: {
-      eyebrow: 'AI স্বাস্থ্য সহকারী',
-      title: 'আপনার স্বাস্থ্য নথি সম্পর্কে জিজ্ঞাসা করুন',
-      description: 'আপনার স্বাস্থ্যস্পেসে থাকা তথ্য আরও সহজভাবে বুঝুন।',
-      promptLabel: 'আপনি জিজ্ঞাসা করতে পারেন',
-      prompts: {
-        explainBloodTest: '“আমার সর্বশেষ রক্ত পরীক্ষাটি সহজ ভাষায় বুঝিয়ে বলবে?”',
-      },
-      openAssistant: 'সহকারীর সঙ্গে কথা বলুন',
-      safety: 'নথি বুঝতে সহায়তা করে—চিকিৎসকের পরামর্শের বিকল্প নয়।',
     },
     states: {
       emptyRecordsTitle: 'এখনও কোনো মেডিকেল রেকর্ড নেই',

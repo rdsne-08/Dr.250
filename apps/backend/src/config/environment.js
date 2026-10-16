@@ -21,14 +21,6 @@ function parsePort(value) {
   return port;
 }
 
-function parsePositiveInteger(value, name) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isInteger(parsed) || parsed < 1) {
-    throw new Error(`${name} must be a positive integer.`);
-  }
-  return parsed;
-}
-
 function requireEnvironmentVariable(name) {
   const value = process.env[name]?.trim();
 
@@ -48,9 +40,4 @@ export const env = Object.freeze({
   supabaseUrl: requireEnvironmentVariable('SUPABASE_URL'),
   supabaseAnonKey: requireEnvironmentVariable('SUPABASE_ANON_KEY'),
   supabaseServiceRoleKey: requireEnvironmentVariable('SUPABASE_SERVICE_ROLE_KEY'),
-  aiServiceUrl: process.env.AI_SERVICE_URL?.trim() || 'http://ai-service:8000',
-  aiRequestTimeoutMs: parsePositiveInteger(
-    process.env.AI_REQUEST_TIMEOUT_MS ?? '30000',
-    'AI_REQUEST_TIMEOUT_MS',
-  ),
 });

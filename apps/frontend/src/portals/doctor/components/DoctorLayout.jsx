@@ -8,7 +8,6 @@ import {
   MapPin,
   Menu,
   ShieldCheck,
-  Sparkles,
   UserRound,
   UsersRound,
 } from 'lucide-react';
@@ -25,7 +24,6 @@ const navigation = [
   { id: 'consultations', href: '#consultation-workspace', icon: CalendarDays },
   { id: 'prescriptions', href: '#prescription-draft', icon: ClipboardPlus },
   { id: 'reports', href: '#patient-management', icon: FileHeart },
-  { id: 'assistant', href: '#clinical-assistant', icon: Sparkles },
   { id: 'profile', href: '#doctor-profile', icon: UserRound },
 ];
 

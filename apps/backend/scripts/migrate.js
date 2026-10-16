@@ -22,7 +22,7 @@ const client = new Client({
 });
 
 const migrationArtifacts = new Map([
-  ['001_extensions.sql', { type: 'extensions', names: ['pgcrypto', 'vector'] }],
+  ['001_extensions.sql', { type: 'extensions', names: ['pgcrypto'] }],
   ['002_users.sql', { type: 'table', name: 'users' }],
   ['003_profiles.sql', { type: 'table', name: 'profiles' }],
   ['004_patients.sql', { type: 'table', name: 'patients' }],
@@ -33,7 +33,6 @@ const migrationArtifacts = new Map([
   ['009_lab_reports.sql', { type: 'table', name: 'lab_reports' }],
   ['010_access_sessions.sql', { type: 'table', name: 'access_sessions' }],
   ['011_audit_logs.sql', { type: 'table', name: 'audit_logs' }],
-  ['012_embeddings.sql', { type: 'table', name: 'medical_embeddings' }],
 ]);
 
 const expectedColumns = {
@@ -70,10 +69,6 @@ const expectedColumns = {
   audit_logs: [
     'id', 'user_id', 'action', 'entity_type', 'entity_id', 'metadata',
     'ip_address', 'created_at',
-  ],
-  medical_embeddings: [
-    'id', 'medical_record_id', 'patient_id', 'chunk_index', 'content',
-    'embedding', 'source_updated_at', 'created_at', 'updated_at',
   ],
 };
 
@@ -158,9 +153,9 @@ async function migrateFile(name, filePath, { allowBaseline = true } = {}) {
 async function verifySchema() {
   const extensions = await client.query(
     `SELECT extname FROM pg_extension WHERE extname = ANY($1::text[]) ORDER BY extname`,
-    [['pgcrypto', 'vector']],
+    [['pgcrypto']],
   );
-  if (extensions.rowCount !== 2) throw new Error('Required PostgreSQL extensions are missing.');
+  if (extensions.rowCount !== 1) throw new Error('Required PostgreSQL extensions are missing.');
 
   const columns = await client.query(
     `

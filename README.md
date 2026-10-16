@@ -32,7 +32,6 @@ Dr.250 provides a unified healthcare record platform where:
 - Patients can securely manage their health information.
 - Doctors can access authorized medical histories.
 - Laboratories can directly provide digital reports.
-- AI assistance can help summarize and organize healthcare information.
 
 ---
 
@@ -53,7 +52,6 @@ To create a simple, secure, and accessible healthcare platform where medical inf
 - Develop a centralized digital healthcare record system.
 - Reduce dependency on physical medical documents.
 - Improve communication between patients, doctors, and laboratories.
-- Provide AI-assisted healthcare information management.
 - Ensure secure access and privacy of medical data.
 
 ---
@@ -83,13 +81,9 @@ flowchart TB
 
     BACKEND --> STORAGE[Document Storage<br/>Reports & Prescriptions]
 
-    BACKEND --> AI[Python AI Service]
 
-    AI --> RAG[RAG Pipeline]
 
-    RAG --> VECTOR[(Vector Database<br/>Embeddings)]
 
-    AI --> LLM[OpenAI API]
 ```
 
 ---
@@ -119,7 +113,6 @@ Dr.250 introduces an integrated healthcare ecosystem consisting of:
 1. Patient Portal
 2. Doctor Portal
 3. Laboratory Portal
-4. AI Healthcare Assistant
 
 The platform allows patients to maintain ownership of their health records while enabling secure collaboration with healthcare professionals.
 
@@ -195,74 +188,6 @@ Laboratories can:
 
 ---
 
-# AI Healthcare Assistant
-
-Dr.250 includes AI-powered assistance modules.
-
----
-
-## 1. Medical History Assistant
-
-A Retrieval-Augmented Generation (RAG) based assistant that can:
-
-- Summarize stored medical history.
-- Retrieve information from patient documents.
-- Answer questions related to previous records.
-
----
-
-## 2. Doctor Pre-Visit Summary
-
-Generates a concise overview containing:
-
-- Previous conditions.
-- Current medications.
-- Allergies.
-- Recent laboratory results.
-
-This helps doctors understand patient history efficiently.
-
----
-
-## 3. General Symptom Helper
-
-Provides general healthcare information.
-
-Limitations:
-
-- Does not diagnose diseases.
-- Does not replace professional medical consultation.
-
----
-
-# AI Workflow
-
-```mermaid
-flowchart TD
-
-    DOCS[Medical Documents]
-
-    DOCS --> CHUNK[Document Chunking]
-
-    CHUNK --> EMB[Generate Embeddings]
-
-    EMB --> VECTOR[(Vector Storage)]
-
-    QUERY[User Query]
-
-    QUERY --> SEARCH[Similarity Search]
-
-    VECTOR --> SEARCH
-
-    SEARCH --> CONTEXT[Relevant Medical Context]
-
-    CONTEXT --> MODEL[AI Model]
-
-    MODEL --> RESPONSE[Generated Response]
-```
-
----
-
 # Security & Privacy
 
 Dr.250 focuses on:
@@ -292,7 +217,6 @@ Admin
 | Backend | Node.js |
 | Database | PostgreSQL |
 | Authentication | Supabase Auth |
-| AI Service | Python + RAG Pipeline |
 | Development Environment | Docker + Docker Compose |
 | Deployment | Vercel + Docker |
 
@@ -311,7 +235,6 @@ flowchart TB
 
     COMPOSE --> BACK[Backend Container<br/>Node.js]
 
-    COMPOSE --> AI[AI Service Container<br/>Python]
 
     COMPOSE --> DB[Database Container<br/>PostgreSQL]
 
@@ -319,7 +242,6 @@ flowchart TB
 
     BACK --> DB
 
-    BACK --> AI
 ```
 
 ---
@@ -337,13 +259,11 @@ APPS --> FRONTEND[frontend]
 
 APPS --> BACKEND[backend]
 
-APPS --> AI_SERVICE[ai-service]
 
 FRONTEND --> REACT[React + Tailwind]
 
 BACKEND --> NODE[Node.js]
 
-AI_SERVICE --> PYTHON[Python AI/RAG]
 
 ROOT --> DATABASE[database]
 
@@ -367,12 +287,6 @@ Dr.250/
 │
 │── backend/
 │   ├── src/
-│   └── Dockerfile
-│
-│── ai-service/
-│   ├── api/
-│   ├── rag/
-│   ├── prompts/
 │   └── Dockerfile
 │
 ├── database/
@@ -399,7 +313,6 @@ Install:
 
 - Git
 - Node.js
-- Python
 - Docker Desktop
 
 
@@ -429,7 +342,6 @@ Example:
 DATABASE_URL=
 SUPABASE_URL=
 SUPABASE_KEY=
-OPENAI_API_KEY=
 ```
 
 ---
@@ -468,7 +380,7 @@ Vercel
 
 ---
 
-## Backend & AI Service
+## Backend
 
 Deployment:
 
@@ -506,14 +418,7 @@ PostgreSQL
 - Medical record management.
 
 
-## Phase 3 — AI Integration
-
-- RAG pipeline.
-- Medical history assistant.
-- Doctor summary generation.
-
-
-## Phase 4 — Testing & Deployment
+## Phase 3 — Testing & Deployment
 
 - Security testing.
 - Performance optimization.
@@ -528,7 +433,6 @@ Future improvements may include:
 - Mobile application.
 - Healthcare provider integration.
 - SMS-based healthcare access.
-- Advanced AI analytics.
 - Remote healthcare assistance.
 
 ---
@@ -539,7 +443,6 @@ Dr.250 is an academic software project.
 
 It is not a certified medical record system and does not replace professional medical advice.
 
-The AI assistant provides information support only and is not intended for medical diagnosis.
 
 ---
 

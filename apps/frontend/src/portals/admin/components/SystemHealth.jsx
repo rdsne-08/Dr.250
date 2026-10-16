@@ -1,11 +1,10 @@
-import { Bot, CheckCircle2, Database, KeyRound, Radio, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Database, KeyRound, Radio, ShieldCheck } from 'lucide-react';
 
 import { Badge, Card } from '../../../components/ui/index.js';
 
 const serviceIcons = {
   database: Database,
   authentication: KeyRound,
-  ai: Bot,
 };
 
 function format(template, values) {

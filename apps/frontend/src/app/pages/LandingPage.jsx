@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  Bot,
   Check,
   ClipboardCheck,
   FileHeart,
@@ -20,7 +19,7 @@ import { SiteHeader } from '../../components/layout/SiteHeader.jsx';
 import { Badge, Button, Card } from '../../components/ui/index.js';
 import { useLanguage } from '../../hooks/useLanguage.js';
 
-const featureIcons = [FileHeart, Stethoscope, FlaskConical, Bot];
+const featureIcons = [FileHeart, Stethoscope, FlaskConical];
 const processIcons = [UserRoundCheck, ClipboardCheck, ShieldCheck];
 
 function SectionIntro({ body, centered = false, eyebrow, inverted = false, title }) {
@@ -164,7 +163,7 @@ export function LandingPage() {
               body={copy.features.body}
             />
 
-            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {copy.features.items.map((feature, index) => {
                 const Icon = featureIcons[index];
 

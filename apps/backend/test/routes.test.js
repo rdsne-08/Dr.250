@@ -41,9 +41,6 @@ const protectedRoutes = [
   ['POST', '/api/prescriptions'],
   ['POST', '/api/reports'],
   ['POST', '/api/sessions'],
-  ['POST', '/api/ai/history'],
-  ['POST', '/api/ai/summary'],
-  ['POST', '/api/ai/symptoms'],
   ['PATCH', '/api/admin/verify/00000000-0000-4000-8000-000000000001'],
   ['PATCH', '/api/sessions/00000000-0000-4000-8000-000000000001/revoke'],
 ];

@@ -1,7 +1,7 @@
 # Dr.250 Database
 
-The Dr.250 database targets PostgreSQL 16 with the `pgcrypto` and `vector`
-extensions. Numbered files in `migrations/` are the source of truth.
+The Dr.250 database targets PostgreSQL 16 with the `pgcrypto`
+extension. Numbered files in `migrations/` are the source of truth.
 `schema.sql` is the canonical `psql` entry point and applies those migrations in
 dependency order.
 
@@ -40,9 +40,8 @@ test creates development-only records.
 9. `009_lab_reports.sql`
 10. `010_access_sessions.sql`
 11. `011_audit_logs.sql`
-12. `012_embeddings.sql`
-13. `policies.sql`
-14. `seed.sql` for development only
+12. `policies.sql`
+13. `seed.sql` for development only
 
 Apply a fresh development database with `psql`:
 

@@ -8,7 +8,6 @@ import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
 import { doctorService } from '../../../services/doctorService.js';
 import { getApiErrorMessage } from '../../../services/apiErrorMessages.js';
-import { ClinicalAssistant } from '../components/ClinicalAssistant.jsx';
 import { ConsultationWorkspace } from '../components/ConsultationWorkspace.jsx';
 import { DoctorLayout } from '../components/DoctorLayout.jsx';
 import { DoctorOverview } from '../components/DoctorOverview.jsx';
@@ -155,7 +154,6 @@ export function DoctorPortalPage() {
             patient={selectedPatient}
             onSaved={reload}
           />
-          <ClinicalAssistant copy={copy} />
         </div>
           </>
         )}

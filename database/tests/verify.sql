@@ -13,29 +13,25 @@ BEGIN
         RAISE EXCEPTION 'pgcrypto extension is missing';
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
-        RAISE EXCEPTION 'vector extension is missing';
-    END IF;
-
     SELECT count(*) INTO application_table_count
     FROM information_schema.tables
     WHERE table_schema = 'public'
       AND table_name IN (
           'users', 'profiles', 'patients', 'doctors', 'laboratories',
           'medical_records', 'prescriptions', 'lab_reports', 'access_sessions',
-          'audit_logs', 'medical_embeddings'
+          'audit_logs'
       );
 
-    IF application_table_count <> 11 THEN
-        RAISE EXCEPTION 'expected 11 application tables, found %', application_table_count;
+    IF application_table_count <> 10 THEN
+        RAISE EXCEPTION 'expected 10 application tables, found %', application_table_count;
     END IF;
 
     SELECT count(*) INTO foreign_key_count
     FROM information_schema.table_constraints
     WHERE constraint_schema = 'public' AND constraint_type = 'FOREIGN KEY';
 
-    IF foreign_key_count < 13 THEN
-        RAISE EXCEPTION 'expected at least 13 foreign keys, found %', foreign_key_count;
+    IF foreign_key_count < 12 THEN
+        RAISE EXCEPTION 'expected at least 12 foreign keys, found %', foreign_key_count;
     END IF;
 
     SELECT count(DISTINCT tablename) INTO indexed_table_count
@@ -44,10 +40,10 @@ BEGIN
       AND tablename IN (
           'users', 'profiles', 'patients', 'doctors', 'laboratories',
           'medical_records', 'prescriptions', 'lab_reports', 'access_sessions',
-          'audit_logs', 'medical_embeddings'
+          'audit_logs'
       );
 
-    IF indexed_table_count <> 11 THEN
+    IF indexed_table_count <> 10 THEN
         RAISE EXCEPTION 'one or more application tables have no index';
     END IF;
 
@@ -59,11 +55,11 @@ BEGIN
       AND relation.relname IN (
           'users', 'profiles', 'patients', 'doctors', 'laboratories',
           'medical_records', 'prescriptions', 'lab_reports', 'access_sessions',
-          'audit_logs', 'medical_embeddings'
+          'audit_logs'
       );
 
-    IF rls_table_count <> 11 THEN
-        RAISE EXCEPTION 'expected RLS on 11 tables, found %', rls_table_count;
+    IF rls_table_count <> 10 THEN
+        RAISE EXCEPTION 'expected RLS on 10 tables, found %', rls_table_count;
     END IF;
 
     IF (SELECT count(*) FROM public.profiles WHERE role IN ('PATIENT', 'DOCTOR', 'LAB', 'ADMIN')) <> 4 THEN
