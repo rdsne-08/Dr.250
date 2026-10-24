@@ -51,6 +51,22 @@ export async function getLaboratories(database = pool) {
   return result.rows;
 }
 
+export async function getAdminOperations(database = pool) {
+  const result = await query(`
+    SELECT log.id, log.created_at, log.entity_type, log.metadata->>'status' AS status,
+           CASE WHEN log.entity_type = 'DOCTOR' THEN doctor_profile.full_name
+                WHEN log.entity_type = 'LAB' THEN laboratory.lab_name END AS provider_name
+    FROM public.audit_logs AS log
+    LEFT JOIN public.doctors AS doctor ON log.entity_type = 'DOCTOR' AND doctor.id = log.entity_id
+    LEFT JOIN public.profiles AS doctor_profile ON doctor_profile.id = doctor.profile_id
+    LEFT JOIN public.laboratories AS laboratory ON log.entity_type = 'LAB' AND laboratory.id = log.entity_id
+    WHERE log.action = 'VERIFICATION_STATUS_CHANGED'
+      AND log.entity_type IN ('DOCTOR', 'LAB')
+    ORDER BY log.created_at DESC, log.id DESC LIMIT 20
+  `, [], database);
+  return { activity: result.rows, database: 'available', authentication: 'unavailable' };
+}
+
 export async function verifyEntity({ id, entityType, status, adminUserId }, database = pool) {
   const table = entityType === 'DOCTOR' ? 'doctors' : 'laboratories';
 

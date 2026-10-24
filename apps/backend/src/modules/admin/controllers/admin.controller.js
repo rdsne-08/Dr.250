@@ -1,4 +1,4 @@
-import { getDoctors, getLaboratories, getUsers, verifyEntity } from '../services/admin.service.js';
+import { getAdminOperations, getDoctors, getLaboratories, getUsers, verifyEntity } from '../services/admin.service.js';
 import { sendSuccess } from '../../../middleware/response.js';
 
 export async function users(_request, response) {
@@ -11,6 +11,10 @@ export async function doctors(_request, response) {
 
 export async function laboratories(_request, response) {
   sendSuccess(response, { laboratories: await getLaboratories() });
+}
+
+export async function operations(_request, response) {
+  sendSuccess(response, await getAdminOperations());
 }
 
 export async function verify(request, response) {

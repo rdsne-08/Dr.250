@@ -97,7 +97,7 @@ export function AdminLayout({ admin, children, copy, onToggleLanguage }) {
           <div className="mx-auto flex min-h-[4.5rem] max-w-[100rem] items-center justify-between gap-4 px-4 sm:px-7 lg:px-10">
             <BrandMark className="lg:hidden" />
             <div className="hidden lg:block">
-              <p className="text-sm font-bold text-ink-800">{copy.topbar.date}</p>
+              <p className="text-sm font-bold text-ink-800">{new Intl.DateTimeFormat('en-GB', { dateStyle: 'full' }).format(new Date())}</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
                 <UserCog className="size-3.5" aria-hidden="true" />
                 {copy.topbar.desk}

@@ -31,6 +31,7 @@ const protectedRoutes = [
   ['GET', '/api/doctors/profile'],
   ['GET', '/api/labs/profile'],
   ['GET', '/api/admin/users'],
+  ['GET', '/api/admin/operations'],
   ['GET', '/api/medical-records/00000000-0000-4000-8000-000000000001'],
   ['GET', '/api/prescriptions/00000000-0000-4000-8000-000000000001'],
   ['GET', '/api/reports/00000000-0000-4000-8000-000000000001'],

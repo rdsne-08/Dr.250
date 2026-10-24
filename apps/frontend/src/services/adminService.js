@@ -2,11 +2,13 @@ import { apiClient } from './apiClient.js';
 
 export const adminService = Object.freeze({
   async getDashboard() {
-    const [users, doctors, labs] = await Promise.all([
+    const [users, doctors, labs, operations] = await Promise.all([
       apiClient.get('/api/admin/users'), apiClient.get('/api/admin/doctors'),
-      apiClient.get('/api/admin/labs'),
+      apiClient.get('/api/admin/labs'), apiClient.get('/api/admin/operations'),
     ]);
-    return { users: users.users, doctors: doctors.doctors, labs: labs.laboratories };
+    return { users: users.users, doctors: doctors.doctors, labs: labs.laboratories,
+      activity: operations.activity, health: { database: operations.database,
+        authentication: operations.authentication } };
   },
   async verify(id, entityType, status) {
     const result = await apiClient.patch(`/api/admin/verify/${id}`, {

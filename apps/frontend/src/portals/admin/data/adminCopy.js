@@ -91,9 +91,11 @@ export const adminCopy = {
       secure: 'Audited activity',
     },
     health: {
+      available: 'Available (database query succeeded)',
+      unavailable: 'Unavailable (no reliable check)',
       eyebrow: 'Service readiness',
       title: 'System health',
-      description: 'Mock operational indicators for core platform services.',
+      description: 'Database availability reflects this request. Authentication service health is not monitored here.',
       services: { database: 'Database', authentication: 'Authentication' },
       statuses: { healthy: 'Healthy', monitored: 'Monitored' },
       response: 'Response {time}',
@@ -193,6 +195,8 @@ export const adminCopy = {
       secure: 'নিরীক্ষিত কার্যক্রম',
     },
     health: {
+      available: 'উপলব্ধ (ডেটাবেস অনুসন্ধান সফল)',
+      unavailable: 'তথ্য উপলব্ধ নয় (নির্ভরযোগ্য পরীক্ষা নেই)',
       eyebrow: 'সেবার প্রস্তুতি',
       title: 'সিস্টেমের স্বাস্থ্য',
       description: 'মূল প্ল্যাটফর্ম সেবাগুলোর জন্য নমুনা কার্যক্রম সূচক।',
