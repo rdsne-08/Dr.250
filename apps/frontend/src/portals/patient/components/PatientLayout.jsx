@@ -23,6 +23,7 @@ const navigation = [
   { id: 'doctors', href: '#quick-actions', icon: Stethoscope },
   { id: 'reports', href: '#health-timeline', icon: FlaskConical },
   { id: 'prescriptions', href: '#health-overview', icon: Pill },
+  { id: 'accessLogs', href: '#access-logs', icon: ShieldCheck },
   { id: 'profile', href: '#patient-profile', icon: UserRound },
 ];
 
@@ -46,7 +47,7 @@ function NavigationItems({ compact = false, copy, onNavigate }) {
         strokeWidth={id === 'dashboard' ? 2.4 : 2}
         aria-hidden="true"
       />
-      <span>{copy.nav[id]}</span>
+      <span>{id === 'accessLogs' ? copy.accessLogs.title : copy.nav[id]}</span>
     </a>
   ));
 }

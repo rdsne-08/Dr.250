@@ -47,6 +47,8 @@ export async function logProviderRead(user, patientId, action, database = pool, 
 export async function getOwnAccessLogs(userId, database = pool) {
   const result = await query(`
     SELECT log.id, log.action, log.created_at, log.metadata->>'role' AS role,
+           log.metadata->>'resource_type' AS resource_type,
+           log.metadata->>'resource_id' AS resource_id,
            actor.full_name AS provider_name
     FROM public.audit_logs AS log
     JOIN public.patients AS patient ON patient.id = log.entity_id

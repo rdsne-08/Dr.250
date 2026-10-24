@@ -70,3 +70,14 @@ test('pending sessions are excluded from patient active-access count', async () 
   };
   assert.equal((await patientService.getDashboard()).doctorAccess.activeSessions, 0);
 });
+test('patient access history uses the authenticated endpoint and returns audit fields', async () => {
+  storeApiSession({ accessToken: 'patient-jwt' });
+  const event = { id: 'event-1', provider_name: 'Dr One', action: 'RECORDS_READ',
+    resource_type: 'MEDICAL_RECORD', resource_id: 'record-1', created_at: '2026-10-24T08:00:00Z' };
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url).pathname, '/api/patients/access-logs');
+    assert.equal(options.headers.get('Authorization'), 'Bearer patient-jwt');
+    return new Response(JSON.stringify({ success: true, data: { logs: [event] } }), { status: 200 });
+  };
+  assert.deepEqual(await patientService.getAccessLogs(), [event]);
+});

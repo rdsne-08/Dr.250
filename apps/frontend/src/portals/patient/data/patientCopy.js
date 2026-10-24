@@ -1,5 +1,6 @@
 export const patientCopy = {
   en: {
+    accessLogs: { title: 'Who accessed my records', description: 'Latest 200 authorized provider accesses. Download events mean access was authorized, not that the transfer completed.', refresh: 'Refresh access history', loading: 'Loading access history…', error: 'Could not load access history.', empty: 'No provider access events recorded.', unknownProvider: 'Unknown provider', resource: 'Resource' },
     languageName: 'বাংলা',
     navigationLabel: 'Patient portal navigation',
     nav: {
@@ -130,6 +131,7 @@ export const patientCopy = {
     },
   },
   bn: {
+    accessLogs: { title: 'কে আমার নথি দেখেছেন', description: 'সর্বশেষ ২০০টি অনুমোদিত প্রবেশ। ডাউনলোড অনুমোদিত হয়েছে মানেই স্থানান্তর সম্পন্ন হয়েছে নয়।', refresh: 'ইতিহাস রিফ্রেশ করুন', loading: 'প্রবেশের ইতিহাস লোড হচ্ছে…', error: 'প্রবেশের ইতিহাস লোড করা যায়নি।', empty: 'কোনো সেবাদাতার প্রবেশ নথিভুক্ত নেই।', unknownProvider: 'অজানা সেবাদাতা', resource: 'নথি' },
     languageName: 'English',
     navigationLabel: 'রোগীর পোর্টাল নেভিগেশন',
     nav: {

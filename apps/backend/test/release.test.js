@@ -34,6 +34,20 @@ test('access-log lookup scopes to authenticated patient owner, not caller-suppli
   } };
   assert.deepEqual(await getOwnAccessLogs('patient-user', db), []);
 });
+test('access-log lookup returns actor, action, resource and timestamp within owner scope', async () => {
+  const event = { id: 'event-1', provider_name: 'Dr One', role: 'DOCTOR',
+    action: 'RECORDS_READ', resource_type: 'MEDICAL_RECORD', resource_id: 'record-1',
+    created_at: new Date('2026-10-24T08:00:00Z') };
+  const db = { query: async (sql, values) => {
+    assert.deepEqual(values, ['patient-user']);
+    for (const field of ['provider_name', 'resource_type', 'resource_id', 'created_at']) {
+      assert.match(sql, new RegExp(field));
+    }
+    assert.match(sql, /owner\.user_id = \$1/);
+    return { rows: [event] };
+  } };
+  assert.deepEqual(await getOwnAccessLogs('patient-user', db), [event]);
+});
 test('provider verification commits approval and audit together, rolls back failures', async () => {
   for (const failAudit of [false, true]) {
     const statements = [];

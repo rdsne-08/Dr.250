@@ -119,7 +119,7 @@ export function PatientDashboard() {
         <div className="mt-5 grid items-start gap-5 xl:grid-cols-2">
           <DoctorAccessCard copy={copy} language={language} />
         </div>
-        <AccessLogs />
+        <AccessLogs copy={copy} language={language} />
       </main>
     </PatientLayout>
   );

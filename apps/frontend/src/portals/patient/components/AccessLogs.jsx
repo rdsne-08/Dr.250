@@ -1,18 +1,30 @@
-import { apiClient } from '../../../services/apiClient.js';
 import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { Button, Card } from '../../../components/ui/index.js';
-const load = () => apiClient.get('/api/patients/access-logs');
-export function AccessLogs() {
-  const { data, error, isLoading, reload } = useAsyncResource(load);
-  return <Card id="access-logs" className="mt-6 p-5">
-    <h2 className="text-xl font-bold">Who accessed my records</h2>
-    <p>Latest 200 authorized provider accesses. Download events mean access was authorized, not that the transfer completed.</p>
-    <Button disabled={isLoading} onClick={reload}>Refresh access log</Button>
-    {isLoading && <p role="status">Loading?</p>}
-    {error && <p role="alert">{error.message}</p>}
-    {!isLoading && !error && data?.logs.length === 0 && <p>No provider access events recorded.</p>}
-    {data?.logs.map(log => <p key={log.id} className="mt-3">
-      {new Date(log.created_at).toLocaleString()} ? {log.provider_name || 'Deleted account'} ({log.role}) ? {log.action}
-    </p>)}
+import { patientService } from '../../../services/patientService.js';
+
+export function AccessLogs({ copy, language = 'en' }) {
+  const { data: logs, error, isLoading, reload } = useAsyncResource(patientService.getAccessLogs);
+  const labels = copy.accessLogs;
+  return <Card id="access-logs" className="mt-6 scroll-mt-24 p-5" aria-labelledby="access-logs-title">
+    <h2 id="access-logs-title" className="text-xl font-bold">{labels.title}</h2>
+    <p className="mt-2 text-sm text-ink-500">{labels.description}</p>
+    <Button className="mt-4" disabled={isLoading} onClick={reload}>{labels.refresh}</Button>
+    {isLoading && <p className="mt-4" role="status">{labels.loading}</p>}
+    {!isLoading && error && <p className="mt-4" role="alert">{labels.error}</p>}
+    {!isLoading && !error && logs?.length === 0 && <p className="mt-4">{labels.empty}</p>}
+    {!isLoading && !error && logs?.length > 0 && <ul className="mt-4 divide-y divide-ink-100">
+      {logs.map((log) => {
+        const date = log.created_at && new Date(log.created_at);
+        const timestamp = date && !Number.isNaN(date.getTime())
+          ? new Intl.DateTimeFormat(language === 'bn' ? 'bn-BD' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+          : null;
+        return <li key={log.id} className="py-3">
+          <p className="font-semibold">{log.provider_name || labels.unknownProvider}{log.role ? ` (${log.role})` : ''}</p>
+          <p>{log.action}</p>
+          {log.resource_type && <p className="text-sm text-ink-500">{labels.resource}: {log.resource_type}{log.resource_id ? ` · ${log.resource_id}` : ''}</p>}
+          {timestamp && <time className="text-sm text-ink-500" dateTime={date.toISOString()}>{timestamp}</time>}
+        </li>;
+      })}
+    </ul>}
   </Card>;
 }

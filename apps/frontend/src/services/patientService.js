@@ -7,6 +7,7 @@ const endpoints = Object.freeze({
   reports: '/api/patients/reports',
   sessions: '/api/sessions',
   verifiedDoctors: '/api/sessions/doctors',
+  accessLogs: '/api/patients/access-logs',
 });
 
 function localized(value) {
@@ -118,6 +119,7 @@ export const patientService = Object.freeze({
     expires_at: new Date(Date.now() + 5 * 60_000).toISOString(),
   })).session,
   getDashboard,
+  getAccessLogs: async () => (await apiClient.get(endpoints.accessLogs)).logs ?? [],
   getMedicalRecords: async () => (await apiClient.get(endpoints.records)).records ?? [],
   getPrescriptions: async () => (await apiClient.get(endpoints.prescriptions)).prescriptions ?? [],
   getProfile: async () => (await apiClient.get(endpoints.profile)).patient,
