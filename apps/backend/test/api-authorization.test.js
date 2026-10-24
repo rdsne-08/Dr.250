@@ -162,7 +162,7 @@ test('laboratory report reads are constrained to the authenticated laboratory', 
 
   await getPatientReports({ id: 'lab-user', role: 'LAB' }, 'patient-1', database);
 
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
   assert.match(calls[1].text, /report\.laboratory_id = \$2/);
   assert.deepEqual(calls[1].values, ['patient-1', 'lab-1']);
 });

@@ -56,7 +56,7 @@ export async function getAuthorizedPatients(doctorId, database = pool) {
       INNER JOIN public.profiles AS profile ON profile.id = patient.profile_id
       INNER JOIN public.users AS app_user ON app_user.id = profile.user_id
       WHERE session.doctor_id = $1
-        AND session.revoked_at IS NULL
+        AND session.status = 'ACTIVE' AND session.revoked_at IS NULL
         AND session.expires_at > now()
       ORDER BY patient.id, session.expires_at DESC
     `,
@@ -91,7 +91,7 @@ export async function hasActivePatientAccess(doctorId, patientId, database = poo
         FROM public.access_sessions
         WHERE doctor_id = $1
           AND patient_id = $2
-          AND revoked_at IS NULL
+          AND status = 'ACTIVE' AND revoked_at IS NULL
           AND expires_at > now()
       ) AS authorized
     `,

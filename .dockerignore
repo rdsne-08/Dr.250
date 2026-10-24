@@ -1,4 +1,9 @@
-node_modules
-__pycache__
-.env
 .git
+**/node_modules
+**/dist
+**/dist-audit
+apps/ai-service
+apps/frontend
+apps/backend/test
+apps/backend/uploads
+.env

@@ -63,13 +63,12 @@ function normalizeAuthError(error) {
   if (error instanceof AuthServiceError) return error;
   if (!(error instanceof ApiError)) return new AuthServiceError('Unable to authenticate right now.');
 
-  const code = error.status === 401
-    ? 'INVALID_CREDENTIALS'
-    : error.status === 409
-      ? 'ACCOUNT_EXISTS'
-      : error.code === 'NETWORK_ERROR'
-        ? 'NETWORK_ERROR'
-        : 'AUTH_ERROR';
+  let code = 'AUTH_ERROR';
+  if (error.code === 'NETWORK_ERROR') code = 'NETWORK_ERROR';
+  else if (error.status === 401) code = 'INVALID_CREDENTIALS';
+  else if (error.status === 409) code = 'ACCOUNT_EXISTS';
+  else if (error.status === 502 || error.status === 503) code = 'AUTH_UNAVAILABLE';
+  else if (error.status === 400) code = 'REGISTRATION_REJECTED';
   return new AuthServiceError(error.message, code);
 }
 

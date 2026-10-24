@@ -6,6 +6,7 @@ const endpoints = Object.freeze({
   prescriptions: '/api/patients/prescriptions',
   reports: '/api/patients/reports',
   sessions: '/api/sessions',
+  verifiedDoctors: '/api/sessions/doctors',
 });
 
 function localized(value) {
@@ -77,7 +78,8 @@ async function getDashboard() {
   const reports = reportsPayload.reports ?? [];
   const sessions = sessionsPayload.sessions ?? [];
   const activeSessions = sessions.filter(
-    (session) => !session.revoked_at && new Date(session.expires_at) > new Date(),
+    (session) => session.status === 'ACTIVE' && !session.revoked_at
+      && new Date(session.expires_at) > new Date(),
   );
   const currentSession = activeSessions[0];
 
@@ -111,9 +113,18 @@ async function getDashboard() {
 }
 
 export const patientService = Object.freeze({
+  createDoctorAccess: async (doctorId) => (await apiClient.post(endpoints.sessions, {
+    doctor_id: doctorId,
+    expires_at: new Date(Date.now() + 5 * 60_000).toISOString(),
+  })).session,
   getDashboard,
   getMedicalRecords: async () => (await apiClient.get(endpoints.records)).records ?? [],
   getPrescriptions: async () => (await apiClient.get(endpoints.prescriptions)).prescriptions ?? [],
   getProfile: async () => (await apiClient.get(endpoints.profile)).patient,
   getReports: async () => (await apiClient.get(endpoints.reports)).reports ?? [],
+  getSessions: async () => (await apiClient.get(endpoints.sessions)).sessions ?? [],
+  getVerifiedDoctors: async () => (await apiClient.get(endpoints.verifiedDoctors)).doctors ?? [],
+  revokeDoctorAccess: async (sessionId) => (await apiClient.patch(
+    `/api/sessions/${sessionId}/revoke`, {},
+  )).session,
 });

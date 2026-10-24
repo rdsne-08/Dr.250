@@ -1,5 +1,6 @@
 import { supabaseAuth } from '../../../config/supabase.js';
 import { HttpError } from '../../../middleware/http-error.js';
+import { findLocalSessionUser, isLocalToken } from '../services/local-auth.service.js';
 import { findProfileByUserId } from '../services/profile.service.js';
 
 export function getBearerToken(authorizationHeader) {
@@ -20,6 +21,21 @@ export function createAuthenticate({ authClient = supabaseAuth, profileLookup = 
         throw new HttpError(401, 'A Bearer access token is required.');
       }
 
+      if (accessToken.startsWith('dr250_')) {
+        if (!isLocalToken(accessToken)) {
+          throw new HttpError(401, 'The authentication token is invalid or expired.');
+        }
+        const userId = await findLocalSessionUser(accessToken);
+        if (!userId) throw new HttpError(401, 'The authentication token is invalid or expired.');
+        const profile = await profileLookup(userId);
+        if (!profile) throw new HttpError(403, 'A profile is not available for this account.');
+        request.authToken = accessToken;
+        request.user = { id: userId, email: profile.email, role: profile.role, profile };
+        next();
+        return;
+      }
+
+      if (!authClient) throw new HttpError(503, 'Legacy authentication is temporarily unavailable.');
       const { data, error } = await authClient.auth.getUser(accessToken);
 
       if (error && (!Number.isInteger(error.status) || error.status >= 500)) {

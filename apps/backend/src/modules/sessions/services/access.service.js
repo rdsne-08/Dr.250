@@ -38,7 +38,7 @@ export async function authorizePatientDataAccess(user, patientId, database = poo
                  FROM public.access_sessions AS session
                  WHERE session.doctor_id = doctor.id
                    AND session.patient_id = $2
-                   AND session.revoked_at IS NULL
+                   AND session.status = 'ACTIVE' AND session.revoked_at IS NULL
                    AND session.expires_at > now()
                ) AS authorized
         FROM public.doctors AS doctor

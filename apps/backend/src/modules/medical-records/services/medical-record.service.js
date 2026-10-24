@@ -1,3 +1,4 @@
+import { logProviderRead } from '../../sessions/services/audit.service.js';
 import { pool, query } from '../../../database/pool.js';
 import { authorizePatientDataAccess } from '../../sessions/services/access.service.js';
 
@@ -27,6 +28,8 @@ export async function getMedicalRecords(user, patientId, database = pool) {
     [patientId],
     database,
   );
+  await logProviderRead(user, patientId, 'RECORDS_READ', database,
+    { type: 'MEDICAL_RECORDS', id: patientId });
   return result.rows.map(serializeRecord);
 }
 

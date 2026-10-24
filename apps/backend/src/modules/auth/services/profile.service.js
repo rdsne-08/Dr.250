@@ -25,7 +25,7 @@ export async function findProfileByUserId(userId, database = pool) {
 }
 
 export async function createProfile(
-  { userId, email, fullName, role, specialization, labName, licenseNumber },
+  { userId, email, fullName, role, specialization, labName, licenseNumber, passwordHash },
   database = pool,
 ) {
   return withTransaction(async (transaction) => {
@@ -33,6 +33,13 @@ export async function createProfile(
       `INSERT INTO public.users (id, email) VALUES ($1, $2)`,
       [userId, email],
     );
+
+    if (passwordHash) {
+      await transaction.query(
+        'INSERT INTO private.account_credentials (user_id, password_hash) VALUES ($1, $2)',
+        [userId, passwordHash],
+      );
+    }
 
     const result = await transaction.query(
       `

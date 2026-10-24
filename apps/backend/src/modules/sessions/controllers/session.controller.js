@@ -3,6 +3,8 @@ import { getPatientProfile } from '../../patients/services/patient.service.js';
 import { sendSuccess } from '../../../middleware/response.js';
 import {
   createPatientSession,
+  getVerifiedDoctors,
+  redeemPatientSession,
   getDoctorSessions,
   getPatientSessions,
   revokePatientSession,
@@ -24,6 +26,7 @@ export async function createSession(request, response) {
     patientId: patient.id,
     ...request.validatedBody,
   });
+  response.set('Cache-Control', 'no-store');
   sendSuccess(response, { session }, 201);
 }
 
@@ -31,4 +34,12 @@ export async function revokeSession(request, response) {
   const patient = await getPatientProfile(request.user.id);
   const session = await revokePatientSession(request.validatedParams.sessionId, patient.id);
   sendSuccess(response, { session });
+}
+
+export async function verifiedDoctors(_request, response) {
+  sendSuccess(response, { doctors: await getVerifiedDoctors() });
+}
+export async function redeemSession(request, response) {
+  response.set('Cache-Control', 'no-store');
+  sendSuccess(response, { session: await redeemPatientSession(request.user, request.body?.credential) });
 }

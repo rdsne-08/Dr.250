@@ -9,6 +9,7 @@ import { useLanguage } from '../../../hooks/useLanguage.js';
 import { doctorService } from '../../../services/doctorService.js';
 import { getApiErrorMessage } from '../../../services/apiErrorMessages.js';
 import { ConsultationWorkspace } from '../components/ConsultationWorkspace.jsx';
+import { AccessRedemptionCard } from '../components/AccessRedemptionCard.jsx';
 import { DoctorLayout } from '../components/DoctorLayout.jsx';
 import { DoctorOverview } from '../components/DoctorOverview.jsx';
 import { LabOrderForm } from '../components/LabOrderForm.jsx';
@@ -130,6 +131,8 @@ export function DoctorPortalPage() {
           doctor={localizedData.doctor}
           stats={localizedData.stats}
         />
+
+        <AccessRedemptionCard language={language} onRedeemed={reload} />
 
         <div className="mt-7">
           <PatientManagement

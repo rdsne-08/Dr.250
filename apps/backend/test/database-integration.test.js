@@ -20,13 +20,18 @@ if (integrationUrl) {
 const patientUserId = '90000000-0000-4000-8000-000000000001';
 const doctorUserId = '90000000-0000-4000-8000-000000000002';
 const labUserId = '90000000-0000-4000-8000-000000000003';
-const integrationUserIds = [patientUserId, doctorUserId, labUserId];
+const adminUserId = '00000000-0000-4000-8000-000000000004';
+const integrationUserIds = [patientUserId, doctorUserId, labUserId, adminUserId];
 
 async function cleanupIntegrationData(query) {
   await query(
     `
       DELETE FROM public.audit_logs
-      WHERE entity_id IN (
+      WHERE user_id = ANY($1::uuid[]) OR entity_id IN (
+        SELECT patient.id FROM public.patients AS patient
+        INNER JOIN public.profiles AS profile ON profile.id = patient.profile_id
+        WHERE profile.user_id = ANY($1::uuid[])
+        UNION
         SELECT doctor.id FROM public.doctors AS doctor
         INNER JOIN public.profiles AS profile ON profile.id = doctor.profile_id
         WHERE profile.user_id = ANY($1::uuid[])
@@ -96,7 +101,7 @@ test('backend services complete the PostgreSQL healthcare data flow', {
   const { authorizePatientDataAccess } = await import(
     '../src/modules/sessions/services/access.service.js'
   );
-  const { createPatientSession } = await import(
+  const { createPatientSession, redeemPatientSession } = await import(
     '../src/modules/sessions/services/session.service.js'
   );
 
@@ -171,11 +176,21 @@ test('backend services complete the PostgreSQL healthcare data flow', {
       (error) => error.statusCode === 403 && error.code === 'PATIENT_ACCESS_DENIED',
     );
 
-    await createPatientSession({
+    const pendingSession = await createPatientSession({
       patientId,
       doctorId: doctor.id,
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
     });
+    assert.equal(pendingSession.status, 'PENDING');
+    await assert.rejects(
+      authorizePatientDataAccess(doctorUser, patientId),
+      (error) => error.statusCode === 403 && error.code === 'PATIENT_ACCESS_DENIED',
+    );
+    await redeemPatientSession(doctorUser, pendingSession.access_token);
+    await assert.rejects(
+      redeemPatientSession(doctorUser, pendingSession.access_token),
+      (error) => error.statusCode === 409 && error.code === 'PIN_ALREADY_USED',
+    );
     const authorizedPatients = await getAuthorizedPatients(doctor.id);
     assert.ok(authorizedPatients.some((patient) => patient.id === patientId));
 
@@ -228,7 +243,9 @@ test('backend services complete the PostgreSQL healthcare data flow', {
     );
     assert.deepEqual(unrelatedReports, []);
 
-    const adminUserId = '00000000-0000-4000-8000-000000000004';
+    await query(`INSERT INTO public.users (id, email) VALUES ($1, 'flow.admin@example.com')`, [adminUserId]);
+    await query(`INSERT INTO public.profiles (id, user_id, full_name, role)
+      VALUES ($1, $1, 'Flow Administrator', 'ADMIN')`, [adminUserId]);
     const users = await getUsers();
     assert.ok(users.some((user) => user.id === patientUserId));
     assert.deepEqual(

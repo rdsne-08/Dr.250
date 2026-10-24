@@ -1,3 +1,4 @@
+import { AccessLogs } from '../components/AccessLogs.jsx';
 import { useMemo } from 'react';
 import { FileHeart, Pill } from 'lucide-react';
 
@@ -116,8 +117,9 @@ export function PatientDashboard() {
         </div>
 
         <div className="mt-5 grid items-start gap-5 xl:grid-cols-2">
-          <DoctorAccessCard copy={copy} access={localizedData.doctorAccess} />
+          <DoctorAccessCard copy={copy} language={language} />
         </div>
+        <AccessLogs />
       </main>
     </PatientLayout>
   );

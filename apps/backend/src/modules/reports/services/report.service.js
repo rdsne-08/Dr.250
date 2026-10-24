@@ -1,3 +1,4 @@
+import { logProviderRead } from '../../sessions/services/audit.service.js';
 import { pool, query } from '../../../database/pool.js';
 import { HttpError } from '../../../middleware/http-error.js';
 import { assertDoctorPatientAccess, getVerifiedDoctor } from '../../doctors/services/doctor.service.js';
@@ -31,6 +32,7 @@ export async function getPatientReports(user, patientId, database = pool) {
     values,
     database,
   );
+  await logProviderRead(user, patientId, 'REPORTS_READ', database);
   return result.rows;
 }
 

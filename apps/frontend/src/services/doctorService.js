@@ -199,4 +199,7 @@ export const doctorService = Object.freeze({
   getPatients: async () => (await apiClient.get(endpoints.patients)).patients ?? [],
   getProfile: async () => (await apiClient.get(endpoints.profile)).doctor,
   getSessions: async () => (await apiClient.get(endpoints.sessions)).sessions ?? [],
+  redeemAccess: async (credential) => (await apiClient.post('/api/sessions/redeem', {
+    credential,
+  })).session,
 });

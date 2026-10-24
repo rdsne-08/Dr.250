@@ -1,3 +1,4 @@
+import { logProviderRead } from '../../sessions/services/audit.service.js';
 import { getAssignedReports, uploadAssignedReport } from '../services/lab.service.js';
 import { removeReportFile, saveReportFile } from '../services/report-file.service.js';
 import { sendSuccess } from '../../../middleware/response.js';
@@ -7,7 +8,11 @@ export async function profile(request, response) {
 }
 
 export async function reports(request, response) {
-  sendSuccess(response, { reports: await getAssignedReports(request.laboratory.id) });
+  const reports = await getAssignedReports(request.laboratory.id);
+  for (const patientId of new Set(reports.map(report => report.patient_id))) {
+    await logProviderRead(request.user, patientId, 'LAB_ASSIGNMENTS_READ');
+  }
+  sendSuccess(response, { reports });
 }
 
 export async function uploadReport(request, response) {

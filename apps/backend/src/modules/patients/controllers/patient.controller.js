@@ -1,3 +1,4 @@
+import { getOwnAccessLogs } from '../../sessions/services/audit.service.js';
 import {
   getOwnMedicalRecords,
   getOwnPrescriptions,
@@ -20,4 +21,8 @@ export async function prescriptions(request, response) {
 
 export async function reports(request, response) {
   sendSuccess(response, { reports: await getOwnReports(request.user.id) });
+}
+
+export async function accessLogs(request, response) {
+  sendSuccess(response, { logs: await getOwnAccessLogs(request.user.id) });
 }

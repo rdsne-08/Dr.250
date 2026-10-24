@@ -1,3 +1,4 @@
+import { isCompatibleHistoricalChecksum, isLineEndingOnlyChecksum, retiredMigrations } from './migration-compatibility.js';
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -64,7 +65,7 @@ const expectedColumns = {
   ],
   access_sessions: [
     'id', 'patient_id', 'doctor_id', 'access_token', 'expires_at', 'revoked_at',
-    'last_accessed_at', 'created_at', 'updated_at',
+    'last_accessed_at', 'created_at', 'updated_at', 'status', 'redeemed_at',
   ],
   audit_logs: [
     'id', 'user_id', 'action', 'entity_type', 'entity_id', 'metadata',
@@ -134,10 +135,12 @@ async function migrateFile(name, filePath, { allowBaseline = true } = {}) {
   );
 
   if (existing.rows[0]) {
-    if (existing.rows[0].checksum !== digest) {
+    if (existing.rows[0].checksum !== digest
+      && !isLineEndingOnlyChecksum(source, existing.rows[0].checksum)
+      && !isCompatibleHistoricalChecksum(name, existing.rows[0].checksum, digest)) {
       throw new Error(`${name} changed after it was applied. Add a new migration instead.`);
     }
-    console.log(`Current ${name}`);
+    console.log(`${existing.rows[0].checksum === digest ? 'Current' : 'Recognized historical checksum (ledger preserved):'} ${name}`);
     return;
   }
 
@@ -221,12 +224,23 @@ try {
   const migrationNames = (await readdir(path.join(databaseDirectory, 'migrations')))
     .filter((name) => /^\d{3}_.+\.sql$/.test(name))
     .sort();
-  for (const name of migrationNames) {
+  const ledger = await client.query('SELECT name, checksum FROM dr250_meta.schema_migrations');
+  for (const row of ledger.rows) {
+    if (row.name === 'policies.sql' || migrationNames.includes(row.name)) continue;
+    if (!retiredMigrations[row.name]?.includes(row.checksum)) {
+      throw new Error(`Unrecognized retired migration/checksum: ${row.name}`);
+    }
+    console.log(`Retained retired migration ${row.name}; existing data and checksum unchanged`);
+  }
+  for (const name of migrationNames.filter((name) => Number(name.slice(0, 3)) < 14)) {
     await migrateFile(name, path.join(databaseDirectory, 'migrations', name));
   }
   await migrateFile('policies.sql', path.join(databaseDirectory, 'policies.sql'), {
     allowBaseline: false,
   });
+  for (const name of migrationNames.filter((name) => Number(name.slice(0, 3)) >= 14)) {
+    await migrateFile(name, path.join(databaseDirectory, 'migrations', name), { allowBaseline: false });
+  }
   await verifySchema();
 } finally {
   try {

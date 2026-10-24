@@ -5,6 +5,7 @@ __pycache__/
 .env.*
 !.env.example
 dist/
+dist-audit/
 build/
 coverage/
 apps/backend/uploads/

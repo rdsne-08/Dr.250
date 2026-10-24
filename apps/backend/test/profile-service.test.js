@@ -76,6 +76,18 @@ test('patient registration creates user, profile, and patient in one transaction
   assert.equal(fake.wasReleased(), true);
 });
 
+test('local password hash is persisted in the private schema with the profile transaction', async () => {
+  const fake = createDatabase();
+  await createProfile({
+    userId: '00000000-0000-4000-8000-000000000009',
+    email: 'local@example.com', fullName: 'Local Patient', role: 'PATIENT',
+    passwordHash: 'scrypt:private-hash',
+  }, fake.database);
+  const credential = fake.commands.find(command => command.text.startsWith('INSERT INTO private.account_credentials'));
+  assert.deepEqual(credential.values, ['00000000-0000-4000-8000-000000000009', 'scrypt:private-hash']);
+  assert.equal(fake.commands.at(-1).text, 'COMMIT');
+});
+
 test('patient registration rolls back all database rows when patient creation fails', async () => {
   const fake = createDatabase({ failPatientInsert: true });
 
@@ -85,11 +97,13 @@ test('patient registration rolls back all database rows when patient creation fa
       email: 'patient@example.com',
       fullName: 'Patient Example',
       role: 'PATIENT',
+      passwordHash: 'scrypt:private-hash',
     }, fake.database),
     DatabaseError,
   );
 
   assert.equal(fake.commands.at(-1).text, 'ROLLBACK');
+  assert.ok(fake.commands.some(({ text }) => text.startsWith('INSERT INTO private.account_credentials')));
   assert.equal(fake.commands.some(({ text }) => text === 'COMMIT'), false);
   assert.equal(fake.wasReleased(), true);
 });

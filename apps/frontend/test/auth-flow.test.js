@@ -200,6 +200,31 @@ test('doctor login accepts a matching doctor account and stores its session', as
   assert.equal(readApiSession().accessToken, 'doctor-token');
 });
 
+test('login rejects the wrong role without storing a token', async () => {
+  globalThis.fetch = async () => new Response(JSON.stringify({ success: true, data: {
+    access_token: 'wrong-role-token', expires_in: 3600,
+    user: { user_id: 'patient-id', role: 'PATIENT' }, role: 'PATIENT',
+  } }), { status: 200 });
+  await assert.rejects(authService.login({ email: 'patient@example.com', password: 'password123', role: 'DOCTOR' }),
+    error => error.code === 'INVALID_CREDENTIALS');
+  assert.equal(readApiSession(), null);
+});
+
+test('incorrect password, duplicate email, unavailable API and network errors stay distinct', async () => {
+  const credentials = { email: 'patient@example.com', password: 'password123', role: 'PATIENT' };
+  const registration = { ...credentials, name: 'Patient', confirmPassword: credentials.password };
+  for (const [status, code, action] of [
+    [401, 'INVALID_CREDENTIALS', () => authService.login(credentials)],
+    [409, 'ACCOUNT_EXISTS', () => authService.register(registration)],
+    [503, 'AUTH_UNAVAILABLE', () => authService.register(registration)],
+  ]) {
+    globalThis.fetch = async () => new Response(JSON.stringify({ success: false, message: 'Safe account error.' }), { status });
+    await assert.rejects(action(), error => error.code === code);
+  }
+  globalThis.fetch = async () => { throw new Error('Connection refused'); };
+  await assert.rejects(authService.register(registration), error => error.code === 'NETWORK_ERROR');
+});
+
 test('stored JWT restores the authenticated patient through /api/auth/me', async () => {
   storeApiSession({ accessToken: 'stored-token', refreshToken: 'refresh-token', expiresIn: 3600 });
 
@@ -254,6 +279,7 @@ test('patient dashboard loads real data from authenticated backend endpoints', a
       sessions: [{
         id: 'session-id',
         doctor_name: 'Dr. Example',
+        status: 'ACTIVE',
         expires_at: '2099-01-01T00:00:00.000Z',
         revoked_at: null,
       }],
