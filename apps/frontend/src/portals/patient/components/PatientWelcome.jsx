@@ -6,7 +6,7 @@ export function PatientWelcome({ copy, patient }) {
   const summary = [
     { id: 'bloodGroup', icon: Droplets, value: patient.bloodGroup },
     { id: 'medicines', icon: Pill, value: patient.activeMedicines },
-    { id: 'nextCheckup', icon: CalendarDays, value: copy.welcome.checkupDate },
+    { id: 'nextCheckup', icon: CalendarDays, value: patient.nextCheckup || copy.welcome.unavailable },
   ];
 
   return (

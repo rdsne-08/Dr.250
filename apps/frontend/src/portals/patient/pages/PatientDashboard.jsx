@@ -95,8 +95,6 @@ export function PatientDashboard() {
                 icon={FileHeart}
                 title={copy.states.emptyRecordsTitle}
                 description={copy.states.emptyRecordsBody}
-                actionLabel={copy.states.emptyRecordsAction}
-                actionHref="#quick-actions"
               />
             ) : null}
             {!hasPrescriptions ? (
@@ -112,11 +110,12 @@ export function PatientDashboard() {
         ) : null}
 
         <div className="mt-8 grid items-start gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
-          <HealthTimeline copy={copy} events={localizedData.timeline} />
-          <QuickActions copy={copy} actions={localizedData.quickActions} />
+          <HealthTimeline copy={copy} events={localizedData.timeline} language={language} />
+          <QuickActions copy={copy} actions={localizedData.quickActions}
+            hasReports={sourceData.overview.find((item) => item.id === 'reports')?.value > 0} />
         </div>
 
-        <div className="mt-5 grid items-start gap-5 xl:grid-cols-2">
+        <div id="doctor-access" className="mt-5 scroll-mt-24 grid items-start gap-5 xl:grid-cols-2">
           <DoctorAccessCard copy={copy} language={language} />
         </div>
         <AccessLogs copy={copy} language={language} />

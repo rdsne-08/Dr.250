@@ -16,9 +16,9 @@ function localized(value) {
 }
 
 function localizedDate(value) {
-  if (!value) return localized('—');
+  if (!value) return localized('Unavailable');
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return localized(value);
+  if (Number.isNaN(date.getTime())) return localized('Unavailable');
   return {
     en: new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(date),
     bn: new Intl.DateTimeFormat('bn-BD', { dateStyle: 'medium' }).format(date),
@@ -34,34 +34,40 @@ function latestDate(items) {
 
 function buildTimeline(records, prescriptions, reports) {
   const candidates = [
-    reports[0] && {
-      id: 'labUploaded',
-      date: localizedDate(reports[0].updated_at ?? reports[0].created_at).en,
+    ...reports.map(report => ({
+      id: `report-${report.id}`,
+      date: localizedDate(report.updated_at ?? report.created_at),
       type: 'report',
-      at: reports[0].updated_at ?? reports[0].created_at,
-      title: `${reports[0].test_name} report`,
-      detail: reports[0].status === 'COMPLETED'
-        ? `Completed by ${reports[0].lab_name}. The report is ready in your health record.`
-        : `Current laboratory status: ${reports[0].status}.`,
-      fileUrl: reports[0].file_url,
-      reportId: reports[0].id,
-    },
-    prescriptions[0] && {
-      id: 'prescriptionUpdated',
-      date: localizedDate(prescriptions[0].created_at).en,
+      at: report.updated_at ?? report.created_at,
+      title: report.test_name ? `${report.test_name} report` : 'Lab report',
+      detail: report.status === 'COMPLETED'
+        ? `Completed${report.lab_name ? ` by ${report.lab_name}` : ''}. The report is ready in your health record.`
+        : report.status ? `Current laboratory status: ${report.status}.` : 'Status unavailable.',
+    })),
+    ...prescriptions.map(prescription => ({
+      id: `prescription-${prescription.id}`,
+      date: localizedDate(prescription.created_at),
       type: 'prescription',
-      at: prescriptions[0].created_at,
-      title: `Prescription: ${prescriptions[0].medicine}`,
+      at: prescription.created_at,
+      title: prescription.medicine ? `Prescription: ${prescription.medicine}` : 'Prescription',
       detail: [
-        prescriptions[0].dosage,
-        prescriptions[0].duration,
-        prescriptions[0].instructions,
+        prescription.dosage,
+        prescription.duration,
+        prescription.instructions,
       ].filter(Boolean).join(' · '),
-    },
-    records[0] && { id: 'recordAdded', date: 'aug03', type: 'record', at: records[0].created_at },
-  ].filter(Boolean);
+    })),
+    ...records.map(record => ({
+      id: `record-${record.id}`,
+      date: localizedDate(record.created_at),
+      type: 'record',
+      at: record.created_at,
+      title: record.title || 'Medical record',
+      detail: record.description || record.record_type || 'No description available.',
+    })),
+  ];
 
-  return candidates.sort((left, right) => new Date(right.at) - new Date(left.at));
+  return candidates.sort((left, right) =>
+    (Date.parse(right.at) || 0) - (Date.parse(left.at) || 0));
 }
 
 async function getDashboard() {
@@ -94,8 +100,8 @@ async function getDashboard() {
     },
     overview: [
       { id: 'records', value: records.length, detailValue: localizedDate(latestDate(records)) },
-      { id: 'visits', value: 0, detailValue: localized('—') },
-      { id: 'reports', value: reports.length, status: reports.length ? 'ready' : undefined },
+      { id: 'reports', value: reports.length,
+        status: reports.some(report => report.status === 'COMPLETED') ? 'ready' : undefined },
       {
         id: 'prescriptions',
         value: prescriptions.length,

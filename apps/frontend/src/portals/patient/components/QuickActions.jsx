@@ -1,6 +1,7 @@
 import { FileUp, FlaskConical, QrCode, Search } from 'lucide-react';
 
 import { Button, Card } from '../../../components/ui/index.js';
+import { quickActionTargets } from '../data/quickActionTargets.js';
 
 const actionIcons = {
   uploadRecord: FileUp,
@@ -9,7 +10,7 @@ const actionIcons = {
   createQr: QrCode,
 };
 
-export function QuickActions({ actions, copy }) {
+export function QuickActions({ actions, copy, hasReports }) {
   return (
     <Card id="quick-actions" className="scroll-mt-24 p-5 sm:p-7">
       <p className="text-xs font-bold uppercase tracking-[0.16em] text-health-700">
@@ -22,17 +23,22 @@ export function QuickActions({ actions, copy }) {
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
         {actions.map((action) => {
           const Icon = actionIcons[action];
+          const unavailable = action === 'uploadRecord' || (action === 'viewReports' && !hasReports);
 
           return (
             <Button
               key={action}
+              as={unavailable ? 'button' : 'a'}
+              href={unavailable ? undefined : quickActionTargets[action]}
+              disabled={unavailable}
+              title={unavailable ? copy.actions.unavailable : undefined}
               className="min-h-[4.75rem] justify-start rounded-2xl px-4 text-left"
               variant="secondary"
             >
               <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-health-50 text-health-700">
                 <Icon className="size-5" aria-hidden="true" />
               </span>
-              <span className="leading-5">{copy.actions.items[action]}</span>
+              <span className="leading-5">{copy.actions.items[action]}{unavailable ? ` · ${copy.actions.unavailable}` : ''}</span>
             </Button>
           );
         })}

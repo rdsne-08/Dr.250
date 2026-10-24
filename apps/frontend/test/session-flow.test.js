@@ -13,6 +13,7 @@ globalThis.window = { dispatchEvent() {}, localStorage: storage, sessionStorage:
 const { clearApiSession, storeApiSession } = await import('../src/services/apiClient.js');
 const { patientService } = await import('../src/services/patientService.js');
 const { doctorService } = await import('../src/services/doctorService.js');
+const { quickActionTargets } = await import('../src/portals/patient/data/quickActionTargets.js');
 
 afterEach(() => { clearApiSession(); globalThis.fetch = originalFetch; });
 after(() => { delete globalThis.window; });
@@ -80,4 +81,40 @@ test('patient access history uses the authenticated endpoint and returns audit f
     return new Response(JSON.stringify({ success: true, data: { logs: [event] } }), { status: 200 });
   };
   assert.deepEqual(await patientService.getAccessLogs(), [event]);
+});
+test('patient timeline includes every backend item, sorted by its real date with an honest fallback', async () => {
+  storeApiSession({ accessToken: 'patient-jwt' });
+  const responses = {
+    '/api/patients/profile': { patient: { id: 'patient-1', full_name: 'Patient One' } },
+    '/api/patients/records': { records: [
+      { id: 'r1', title: 'Older record', created_at: '2026-01-01T00:00:00Z' },
+      { id: 'r2', title: 'Undated record' },
+    ] },
+    '/api/patients/prescriptions': { prescriptions: [
+      { id: 'p1', medicine: 'Medicine A', created_at: '2026-03-01T00:00:00Z' },
+      { id: 'p2', medicine: 'Medicine B', created_at: '2026-02-01T00:00:00Z' },
+    ] },
+    '/api/patients/reports': { reports: [
+      { id: 'a1', test_name: 'CBC', status: 'COMPLETED', updated_at: '2026-04-01T00:00:00Z' },
+      { id: 'a2', test_name: 'Lipid', status: 'PENDING', created_at: '2026-01-15T00:00:00Z' },
+    ] },
+    '/api/sessions': { sessions: [] },
+  };
+  globalThis.fetch = async (url, options) => {
+    assert.equal(options.headers.get('Authorization'), 'Bearer patient-jwt');
+    return Response.json({ success: true, data: responses[new URL(url).pathname] });
+  };
+  const dashboard = await patientService.getDashboard();
+  assert.deepEqual(dashboard.timeline.map(event => event.id), [
+    'report-a1', 'prescription-p1', 'prescription-p2', 'report-a2', 'record-r1', 'record-r2',
+  ]);
+  assert.equal(dashboard.timeline.find(event => event.id === 'record-r1').date.en, '1 Jan 2026');
+  assert.equal(dashboard.timeline.find(event => event.id === 'record-r2').date.en, 'Unavailable');
+  assert.equal(dashboard.patient.nextCheckup, null);
+});
+test('quick actions point to existing dashboard sections; upload has no misleading target', () => {
+  assert.deepEqual(quickActionTargets, {
+    findDoctor: '#doctor-access', viewReports: '#health-timeline', createQr: '#doctor-access',
+  });
+  assert.equal(quickActionTargets.uploadRecord, undefined);
 });

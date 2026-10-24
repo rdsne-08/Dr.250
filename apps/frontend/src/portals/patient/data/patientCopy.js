@@ -30,6 +30,7 @@ export const patientCopy = {
       chooseSection: 'Choose where you would like to go.',
     },
     welcome: {
+      unavailable: 'Unavailable',
       greeting: 'Good morning, {name}',
       eyebrow: 'Your personal health companion',
       message: 'Your health records are organized and secure.',
@@ -100,6 +101,7 @@ export const patientCopy = {
       },
     },
     actions: {
+      unavailable: 'Unavailable',
       eyebrow: 'Quick actions',
       title: 'What would you like to do?',
       items: {
@@ -161,6 +163,7 @@ export const patientCopy = {
       chooseSection: 'আপনি কোথায় যেতে চান তা বেছে নিন।',
     },
     welcome: {
+      unavailable: 'তথ্য নেই',
       greeting: 'সুপ্রভাত, {name}',
       eyebrow: 'আপনার ব্যক্তিগত স্বাস্থ্যসঙ্গী',
       message: 'আপনার স্বাস্থ্য নথি গুছানো ও নিরাপদ আছে।',
@@ -231,6 +234,7 @@ export const patientCopy = {
       },
     },
     actions: {
+      unavailable: 'উপলব্ধ নয়',
       eyebrow: 'দ্রুত কাজ',
       title: 'আপনি কী করতে চান?',
       items: {
