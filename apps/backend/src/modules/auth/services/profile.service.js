@@ -28,10 +28,11 @@ export async function createProfile(
   { userId, email, fullName, role, specialization, labName, licenseNumber, passwordHash },
   database = pool,
 ) {
+  const normalizedEmail = email.trim().toLowerCase();
   return withTransaction(async (transaction) => {
     await transaction.query(
       `INSERT INTO public.users (id, email) VALUES ($1, $2)`,
-      [userId, email],
+      [userId, normalizedEmail],
     );
 
     if (passwordHash) {
@@ -91,7 +92,7 @@ export async function createProfile(
 
     return {
       ...result.rows[0],
-      email,
+      email: normalizedEmail,
       ...(patientId ? { patient_id: patientId } : {}),
       ...(doctor
         ? {

@@ -26,20 +26,25 @@ export async function registerUser({
   specialization,
   labName,
   licenseNumber,
-}) {
+}, { persistProfile = createProfile, passwordHasher = hashPassword } = {}) {
+  const normalizedEmail = email.trim().toLowerCase();
   try {
-    return await createProfile({
+    return await persistProfile({
       userId: randomUUID(),
-      email,
+      email: normalizedEmail,
       fullName,
       role,
       specialization,
       labName,
       licenseNumber,
-      passwordHash: await hashPassword(password),
+      passwordHash: await passwordHasher(password),
     });
   } catch (error) {
     if (error?.code === '23505') {
+      const constraint = error?.cause?.constraint ?? error?.constraint;
+      if (constraint && !constraint.startsWith('users_email_')) {
+        throw new HttpError(409, 'An account with these provider details already exists.');
+      }
       throw new HttpError(409, 'An account with this email already exists.');
     }
     console.error('Registration persistence failed.', { code: error?.code ?? 'UNKNOWN' });
@@ -48,13 +53,14 @@ export async function registerUser({
 }
 
 export async function loginUser({ email, password }) {
+  const normalizedEmail = email.trim().toLowerCase();
   let account;
   try {
     account = (await query(`SELECT users.id, credentials.password_hash
       FROM public.users AS users
       LEFT JOIN private.account_credentials AS credentials ON credentials.user_id = users.id
-      WHERE lower(users.email) = $1`,
-      [email])).rows[0];
+      WHERE lower(btrim(users.email)) = $1`,
+      [normalizedEmail])).rows[0];
   } catch {
     throw new HttpError(503, 'Sign-in is temporarily unavailable. Please try again later.');
   }
@@ -83,7 +89,7 @@ export async function loginUser({ email, password }) {
   if (!supabaseAuth || !supabaseAdmin) {
     throw new HttpError(503, 'Legacy sign-in is temporarily unavailable.');
   }
-  const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabaseAuth.auth.signInWithPassword({ email: normalizedEmail, password });
 
   if (error) {
     throw loginError(error);

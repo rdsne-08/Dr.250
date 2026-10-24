@@ -3,6 +3,7 @@ import test from 'node:test';
 
 if (process.env.AUTH_INTEGRATION_URL) process.env.DATABASE_URL = process.env.AUTH_INTEGRATION_URL;
 const { hashPassword, verifyPassword } = await import('../src/modules/auth/services/local-auth.service.js');
+const { registerUser } = await import('../src/modules/auth/services/auth.service.js');
 
 test('passwords are salted and incorrect passwords fail comparison', async () => {
   const first = await hashPassword('patient-password');
@@ -11,6 +12,32 @@ test('passwords are salted and incorrect passwords fail comparison', async () =>
   assert.ok(!first.includes('patient-password'));
   assert.equal(await verifyPassword('patient-password', first), true);
   assert.equal(await verifyPassword('wrong-password', first), false);
+});
+test('registration normalizes email and reports duplicate identity without replacing credentials', async () => {
+  const accounts = new Map();
+  const dependencies = {
+    passwordHasher: async password => `hash:${password}`,
+    persistProfile: async profile => {
+      if (accounts.has(profile.email)) throw Object.assign(new Error('duplicate'), { code: '23505' });
+      accounts.set(profile.email, profile);
+      return profile;
+    },
+  };
+  const input = { email: '  Patient@Example.Invalid  ', password: 'first-secret',
+    fullName: 'First Name', role: 'PATIENT' };
+  const created = await registerUser(input, dependencies);
+  assert.equal(created.email, 'patient@example.invalid');
+  await assert.rejects(registerUser({ ...input, email: 'PATIENT@example.invalid',
+    fullName: 'Different Name', password: 'second-secret' }, dependencies),
+  error => error.statusCode === 409 && /email already exists/.test(error.message));
+  assert.equal(accounts.size, 1);
+  assert.equal(accounts.get(created.email).passwordHash, 'hash:first-secret');
+  await assert.rejects(registerUser({ ...input, email: 'new@example.invalid' }, {
+    passwordHasher: dependencies.passwordHasher,
+    persistProfile: async () => { throw Object.assign(new Error('license conflict'), {
+      code: '23505', constraint: 'doctors_license_number_key',
+    }); },
+  }), error => error.statusCode === 409 && /provider details/.test(error.message));
 });
 
 test('registration persists a patient; login, duplicates, wrong password, session and logout work', {
@@ -48,8 +75,22 @@ test('registration persists a patient; login, duplicates, wrong password, sessio
     assert.ok(row.password_hash.startsWith('scrypt:'));
     assert.ok(!row.password_hash.includes(password));
 
-    const duplicate = await post('/api/auth/register', registration);
+    const duplicate = await post('/api/auth/register', { ...registration,
+      email: `  ${email.toUpperCase()}  `, full_name: 'Another Patient', password: 'Other-password-123!' });
     assert.equal(duplicate.status, 409);
+    assert.match(duplicate.body.message, /email already exists/);
+    const concurrentEmail = `concurrent.${email}`;
+    const concurrent = await Promise.all([
+      post('/api/auth/register', { ...registration, email: concurrentEmail, full_name: 'First' }),
+      post('/api/auth/register', { ...registration, email: ` ${concurrentEmail.toUpperCase()} `,
+        full_name: 'Second', password: 'Other-password-123!' }),
+    ]);
+    assert.deepEqual(concurrent.map(result => result.status).sort(), [201, 409]);
+    userIds.push(concurrent.find(result => result.status === 201).body.data.user.user_id);
+    assert.equal((await query('SELECT count(*)::int AS count FROM public.users WHERE lower(btrim(email))=$1',
+      [concurrentEmail])).rows[0].count, 1);
+    assert.equal((await query('SELECT count(*)::int AS count FROM public.users WHERE lower(btrim(email))=$1',
+      [email])).rows[0].count, 1);
     const wrong = await post('/api/auth/login', { email, password: 'wrong-password' });
     assert.equal(wrong.status, 401);
     const login = await post('/api/auth/login', { email, password });

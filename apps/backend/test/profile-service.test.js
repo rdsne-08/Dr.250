@@ -87,6 +87,14 @@ test('local password hash is persisted in the private schema with the profile tr
   assert.deepEqual(credential.values, ['00000000-0000-4000-8000-000000000009', 'scrypt:private-hash']);
   assert.equal(fake.commands.at(-1).text, 'COMMIT');
 });
+test('profile persistence stores the canonical email', async () => {
+  const fake = createDatabase();
+  const profile = await createProfile({ userId: '00000000-0000-4000-8000-000000000010',
+    email: '  MiXeD@Example.Invalid  ', fullName: 'Canonical Patient', role: 'PATIENT' }, fake.database);
+  assert.equal(profile.email, 'mixed@example.invalid');
+  assert.deepEqual(fake.commands.find(command => command.text.startsWith('INSERT INTO public.users')).values,
+    ['00000000-0000-4000-8000-000000000010', 'mixed@example.invalid']);
+});
 
 test('patient registration rolls back all database rows when patient creation fails', async () => {
   const fake = createDatabase({ failPatientInsert: true });

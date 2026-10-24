@@ -21,6 +21,12 @@ test('fresh extension migration requires pgcrypto without pgvector', () => {
   assert.doesNotMatch(source, /\bvector\b/i);
   assert.equal(readdirSync(path.join(root, 'database/migrations')).includes('012_embeddings.sql'), false);
 });
+test('canonical email migration uses a unique trimmed case-insensitive index', () => {
+  const source = readFileSync(path.join(root, 'database/migrations/017_canonical_user_email.sql'), 'utf8');
+  assert.match(source, /CREATE UNIQUE INDEX users_email_canonical_uidx/);
+  assert.match(source, /lower\(btrim\(email\)\)/);
+  assert.doesNotMatch(source, /UPDATE public\.users|ON CONFLICT/i);
+});
 
 test('unchanged SQL accepts LF and CRLF ledger checksums only', () => {
   const source = readFileSync(path.join(root, 'database/migrations/002_users.sql'), 'utf8');
