@@ -2,9 +2,37 @@
 
 Dr.250 is a small Patient–Doctor application. Patients keep a personal medical history, choose verified doctors, grant or revoke time-limited access, and view prescriptions and access history. Verified doctors can read only the records of patients who granted them active access and can write prescriptions to those patients' profiles.
 
+## Features and screenshots
+
+- Patients add medical records, view prescriptions and access history, and grant or revoke verified doctors.
+- Verified doctors see only patients with active grants and can create prescriptions for them.
+- Local accounts use database-backed passwords. Existing Supabase authentication remains supported. Doctor verification and provider record access are audited.
+
+The screenshots below show the running application with fictional accounts and medical details in a disposable database.
+
+| Patient dashboard | Doctor dashboard |
+| --- | --- |
+| ![Patient dashboard with fictional history, prescription and doctor grant](docs/images/patient-dashboard.jpg) | ![Doctor dashboard with an authorized fictional patient](docs/images/doctor-dashboard.jpg) |
+
+| Medical history | Doctor authorization | Prescriptions |
+| --- | --- | --- |
+| ![Fictional medical record](docs/images/medical-history.jpg) | ![Active doctor grant with revoke control](docs/images/doctor-access.jpg) | ![Fictional prescription in patient history](docs/images/prescriptions.jpg) |
+
 ## Run locally
 
 Requirements: Node.js 20+, PostgreSQL 16, and npm. Copy `.env.example` to `.env`. For processes running directly on your computer, change `DATABASE_URL` to a reachable local PostgreSQL address such as `postgresql://USER:PASSWORD@localhost:5432/DB_NAME`, using your actual database values. The frontend uses `VITE_API_URL` (default `http://localhost:3000`). Supabase variables are optional for existing legacy authentication; new local accounts use the database-backed password flow. Keep `.env` private.
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL`, `DATABASE_SSL` | Backend PostgreSQL connection and TLS setting |
+| `PORT`, `CORS_ORIGIN` | Backend listener and allowed frontend origin |
+| `VITE_API_URL` | Frontend build-time public backend URL; use a reachable HTTPS API in production |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT` | Local Docker PostgreSQL settings |
+| `BACKEND_PORT`, `FRONTEND_PORT` | Local Docker published ports |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Optional legacy Supabase authentication |
+| `AUTH_INTEGRATION_URL`, `DR250_DISPOSABLE_URL` | Test-only, loopback `dr250_release_*` database URLs |
+
+For production, provide a persistent PostgreSQL service and an HTTPS backend host separately from the static frontend. The backend Docker image runs forward-only migrations at startup. Configure database credentials and other secrets in the hosting environment, and set `CORS_ORIGIN` to the deployed frontend origin. A browser cannot call a local Docker address from a public Vercel site.
 
 ```bash
 cd apps/backend
@@ -65,6 +93,16 @@ email rejection, doctor verification, patient grant, record access,
 prescription persistence and patient visibility, access history, and revocation.
 They clean up their test accounts. Keep this URL separate from your normal
 application database.
+
+Release verification on 26 October 2026: the database-backed patient and doctor workflow, account integration tests, and historical migration test passed; frontend tests (12), lint, production build, backend syntax check, and Docker health checks passed. The historical migration fixture requires pgvector, so it was run in a separate disposable PostgreSQL container. The normal application database does not require pgvector.
+
+## Presentation workflow
+
+1. Show patient registration and medical history using fictional demonstration details.
+2. Show a pending doctor, then have a trusted operator verify the checked license with the audited command below.
+3. Grant that doctor access from the patient dashboard. Show the doctor's authorized patient list and record view.
+4. Save a fictional prescription as the doctor, then show it in the patient's prescription history.
+5. Revoke access as the patient and confirm the doctor can no longer read the record or create a prescription.
 
 ## Project structure
 
