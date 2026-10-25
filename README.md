@@ -451,3 +451,29 @@ It is not a certified medical record system and does not replace professional me
 ## Team BioByte
 
 Dr.250 — A Smart Digital Healthcare Ecosystem
+# Demonstration doctor verification
+
+New doctor registrations start with `PENDING` verification. A pending doctor can
+sign in to see their profile, but cannot list patients, read records, or create
+prescriptions. Patient access also requires an explicit, active patient grant.
+
+For a demonstration, an operator with database access must inspect the doctor's
+identity and BMDC license outside the application. After confirming the stored
+license belongs to that doctor, run the local backend command with an existing
+internal `ADMIN` identity as the audit actor:
+
+```bash
+cd apps/backend
+# Set DATABASE_URL to the migrated demonstration database in your shell.
+node scripts/verify-demo-doctor.js doctor@example.com BMDC-LICENSE-NUMBER operator@example.com
+```
+
+Replace all three example arguments with the actual registered doctor email,
+stored license number, and existing internal admin email. The command accepts
+only a pending doctor whose email and license both match, then updates status
+and writes a `VERIFICATION_STATUS_CHANGED` audit event in one transaction. It
+requires direct database access; it does not expose a public verification API
+or create accounts. To review the result, query `public.doctors` and
+`public.audit_logs` using your normal database administration access. The
+patient must still select this verified doctor and grant access before any
+records or prescriptions are available.
