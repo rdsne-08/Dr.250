@@ -14,7 +14,7 @@ export const prescriptionRouter = Router();
 prescriptionRouter.use(authenticate);
 prescriptionRouter.get(
   '/:patientId',
-  requireRole('PATIENT', 'DOCTOR', 'ADMIN'),
+  requireRole('PATIENT', 'DOCTOR'),
   validatePrescriptionPatient,
   listPrescriptions,
 );

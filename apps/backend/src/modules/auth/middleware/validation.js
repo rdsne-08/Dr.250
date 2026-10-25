@@ -1,6 +1,6 @@
 import { HttpError } from '../../../middleware/http-error.js';
 
-export const SUPPORTED_ROLES = Object.freeze(['PATIENT', 'DOCTOR', 'LAB', 'ADMIN']);
+export const SUPPORTED_ROLES = Object.freeze(['PATIENT', 'DOCTOR']);
 export const SELF_REGISTER_ROLES = Object.freeze(['PATIENT', 'DOCTOR']);
 
 function requireJsonObject(body) {

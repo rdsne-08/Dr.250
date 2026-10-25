@@ -11,7 +11,6 @@
     "check": "node scripts/check.js",
     "db:migrate": "node scripts/migrate.js",
     "test": "node --test --test-concurrency=1",
-    "test:database": "node --test test/database-integration.test.js",
     "test:e2e:doctor": "node scripts/doctor-e2e.js",
     "test:e2e:patient": "node scripts/patient-e2e.js",
     "test:isolated": "node --import ./scripts/test-env.js --test --test-concurrency=1"

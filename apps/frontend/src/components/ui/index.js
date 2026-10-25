@@ -1,12 +1,7 @@
-export { Avatar } from './Avatar.jsx';
 export { Badge } from './Badge.jsx';
 export { Button } from './Button.jsx';
 export { Card } from './Card.jsx';
 export { EmptyState } from './EmptyState.jsx';
-export { FileUploadCard } from './FileUploadCard.jsx';
 export { Input } from './Input.jsx';
 export { Loader } from './Loader.jsx';
-export { Modal } from './Modal.jsx';
 export { Notification } from './Notification.jsx';
-export { SearchBar } from './SearchBar.jsx';
-export { StatusCard } from './StatusCard.jsx';

@@ -197,7 +197,6 @@ export function RegisterPage() {
             {copy.register.switchAction}
           </Link>
         </p>
-        <p className="mt-3 text-[0.68rem] font-semibold text-ink-400">{copy.shared.mockNote}</p>
       </div>
     </AuthPageLayout>
   );

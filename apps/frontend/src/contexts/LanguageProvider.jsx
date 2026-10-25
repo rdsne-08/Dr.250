@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { siteCopy } from '../lib/copy.js';
 import { LanguageContext } from './language-context.js';
 
 function initialLanguage() {
@@ -18,7 +17,6 @@ export function LanguageProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      copy: siteCopy[language],
       language,
       setLanguage,
       toggleLanguage: () => setLanguage((current) => (current === 'en' ? 'bn' : 'en')),

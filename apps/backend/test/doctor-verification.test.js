@@ -6,6 +6,7 @@ const { verifyDemoDoctor } = await import('../scripts/verify-demo-doctor.js');
 const { authorizePatientDataAccess } = await import('../src/modules/sessions/services/access.service.js');
 const { createDoctorPrescription } = await import('../src/modules/prescriptions/services/prescription.service.js');
 const { getMedicalRecords } = await import('../src/modules/medical-records/services/medical-record.service.js');
+const { revokePatientSession } = await import('../src/modules/sessions/services/session.service.js');
 
 test('setup verification requires an existing admin, matching license, and pending doctor; writes an audit event', async () => {
   const statements = [];
@@ -80,4 +81,24 @@ test('verified doctor with a patient grant can read and save to that patient pro
     dosage: 'Once daily', instructions: 'After food' }, database);
   assert.equal(saved.patient_id, 'patient-1');
   assert.deepEqual(statements.at(-1).values.slice(0, 2), ['patient-1', 'doctor-1']);
+});
+
+test('patient revocation blocks later record reads and prescriptions', async () => {
+  let revoked = false;
+  const database = { query: async sql => {
+    if (sql.includes('UPDATE public.access_sessions')) {
+      revoked = true;
+      return { rows: [{ id: 'connection-1', revoked_at: new Date() }] };
+    }
+    if (sql.includes('SELECT EXISTS')) return { rows: [{ authorized: !revoked }] };
+    if (sql.includes('AS authorized')) return { rows: [{ id: 'doctor-1',
+      verification_status: 'VERIFIED', authorized: !revoked }] };
+    return { rows: [{ id: 'doctor-1', verification_status: 'VERIFIED' }] };
+  } };
+  await revokePatientSession('connection-1', 'patient-1', database);
+  const user = { id: 'doctor-user', role: 'DOCTOR' };
+  await assert.rejects(getMedicalRecords(user, 'patient-1', database),
+    error => error.statusCode === 403 && error.code === 'PATIENT_ACCESS_DENIED');
+  await assert.rejects(createDoctorPrescription(user, { patientId: 'patient-1' }, database),
+    error => error.statusCode === 403 && error.code === 'PATIENT_ACCESS_DENIED');
 });

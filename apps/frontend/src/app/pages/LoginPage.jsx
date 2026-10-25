@@ -130,7 +130,6 @@ export function LoginPage() {
           {copy.login.submit}
         </Button>
 
-        <p className="text-center text-xs leading-5 text-ink-400">{copy.login.mockHint}</p>
       </form>
 
       <div className="mt-6 border-t border-ink-100 pt-5 text-center">
@@ -140,7 +139,6 @@ export function LoginPage() {
             {copy.login.switchAction}
           </Link>
         </p>
-        <p className="mt-3 text-[0.68rem] font-semibold text-ink-400">{copy.shared.mockNote}</p>
       </div>
     </AuthPageLayout>
   );

@@ -13,7 +13,7 @@ export const medicalRecordRouter = Router();
 medicalRecordRouter.use(authenticate);
 medicalRecordRouter.get(
   '/:patientId',
-  requireRole('PATIENT', 'DOCTOR', 'ADMIN'),
+  requireRole('PATIENT', 'DOCTOR'),
   validateMedicalRecordPatient,
   listMedicalRecords,
 );

@@ -24,7 +24,6 @@ export async function registerUser({
   fullName,
   role,
   specialization,
-  labName,
   licenseNumber,
 }, { persistProfile = createProfile, passwordHasher = hashPassword } = {}) {
   const normalizedEmail = email.trim().toLowerCase();
@@ -35,7 +34,6 @@ export async function registerUser({
       fullName,
       role,
       specialization,
-      labName,
       licenseNumber,
       passwordHash: await passwordHasher(password),
     });

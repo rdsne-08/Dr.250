@@ -2,10 +2,6 @@ import { pool, query } from '../../../database/pool.js';
 import { HttpError } from '../../../middleware/http-error.js';
 
 export async function authorizePatientDataAccess(user, patientId, database = pool) {
-  if (user.role === 'ADMIN') {
-    return { role: 'ADMIN' };
-  }
-
   if (user.role === 'PATIENT') {
     const result = await query(
       `

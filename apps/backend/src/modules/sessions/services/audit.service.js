@@ -3,7 +3,7 @@ import { HttpError } from '../../../middleware/http-error.js';
 
 // Called only after the corresponding resource authorization succeeds.
 export async function logProviderRead(user, patientId, action, database = pool, resource = {}) {
-  if (!['DOCTOR', 'LAB', 'ADMIN'].includes(user.role)) return;
+  if (user.role !== 'DOCTOR') return;
   const values = [user.id, patientId, action, user.role,
     resource.type ?? 'PATIENT', resource.id ?? patientId];
   if (user.role === 'DOCTOR') {

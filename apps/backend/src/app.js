@@ -5,7 +5,6 @@ import helmet from 'helmet';
 import { env } from './config/environment.js';
 import { testDatabaseConnection } from './database/pool.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
-import { adminRouter } from './modules/admin/routes/admin.routes.js';
 import { authRouter } from './modules/auth/routes/auth.routes.js';
 import { doctorRouter } from './modules/doctors/routes/doctor.routes.js';
 import { medicalRecordRouter } from './modules/medical-records/routes/medical-record.routes.js';
@@ -52,7 +51,6 @@ export function createApp({ databaseCheck = testDatabaseConnection } = {}) {
   app.use('/api/auth', authRouter);
   app.use('/api/patients', patientRouter);
   app.use('/api/doctors', doctorRouter);
-  app.use('/api/admin', adminRouter);
   app.use('/api/medical-records', medicalRecordRouter);
   app.use('/api/prescriptions', prescriptionRouter);
   app.use('/api/sessions', sessionRouter);

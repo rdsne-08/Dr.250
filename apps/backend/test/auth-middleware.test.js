@@ -97,7 +97,7 @@ test('role middleware allows the configured role', () => {
 });
 
 test('role middleware rejects a different role', () => {
-  const middleware = requireRole('ADMIN');
+  const middleware = requireRole('DOCTOR');
   let nextError;
 
   middleware({ user: { role: 'PATIENT' } }, {}, (error) => {
@@ -109,7 +109,7 @@ test('role middleware rejects a different role', () => {
 });
 
 test('role middleware returns 401 when authentication context is missing', () => {
-  const middleware = requireRole('ADMIN');
+  const middleware = requireRole('DOCTOR');
   let nextError;
 
   middleware({}, {}, (error) => {

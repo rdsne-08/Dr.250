@@ -11,8 +11,6 @@ COPY --chown=node:node apps/backend/src ./src
 COPY --chown=node:node apps/backend/scripts ./scripts
 COPY --chown=node:node database /workspace/database
 
-RUN mkdir -p /workspace/apps/backend/uploads/reports && chown -R node:node /workspace/apps/backend/uploads && chmod 700 /workspace/apps/backend/uploads/reports
-
 USER node
 
 EXPOSE 3000
