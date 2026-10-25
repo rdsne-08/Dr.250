@@ -146,7 +146,7 @@ test('doctor registration sends specialization and BMDC license fields', async (
     confirmPassword: 'password123',
     role: 'DOCTOR',
     specialization: 'Internal Medicine',
-    licenseNumber: 'BMDC-12345',
+    licenseNumber: '12345678',
     remember: true,
   });
 
@@ -159,9 +159,36 @@ test('doctor registration sends specialization and BMDC license fields', async (
       password: 'password123',
       role: 'DOCTOR',
       specialization: 'Internal Medicine',
-      license_number: 'BMDC-12345',
+      license_number: '12345678',
     },
   });
+});
+
+test('invalid doctor license is rejected before registration reaches the API', async () => {
+  let requests = 0;
+  globalThis.fetch = async () => { requests += 1; throw new Error('Unexpected request'); };
+  await assert.rejects(authService.register({ name: 'Dr. Example', email: 'doctor@example.com',
+    password: 'password123', confirmPassword: 'password123', role: 'DOCTOR',
+    specialization: 'General', licenseNumber: 'BMDC-12345' }),
+  error => error.code === 'INVALID_LICENSE_NUMBER');
+  assert.equal(requests, 0);
+});
+
+test('registration success followed by sign-in failure reports that the account was created', async () => {
+  const paths = [];
+  globalThis.fetch = async (url) => {
+    const path = new URL(url).pathname;
+    paths.push(path);
+    return new Response(JSON.stringify(path === '/api/auth/register'
+      ? { success: true, data: { user: { role: 'DOCTOR' } } }
+      : { success: false, message: 'Sign-in temporarily unavailable.' }),
+    { status: path === '/api/auth/register' ? 201 : 503 });
+  };
+  await assert.rejects(authService.register({ name: 'Dr. Example', email: 'doctor@example.com',
+    password: 'password123', confirmPassword: 'password123', role: 'DOCTOR',
+    specialization: 'General', licenseNumber: '12345678' }),
+  error => error.code === 'ACCOUNT_CREATED_SIGN_IN_REQUIRED');
+  assert.deepEqual(paths, ['/api/auth/register', '/api/auth/login']);
 });
 
 test('doctor login accepts a matching doctor account and stores its session', async () => {

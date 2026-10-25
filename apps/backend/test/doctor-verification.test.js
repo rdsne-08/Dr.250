@@ -11,41 +11,47 @@ const { revokePatientSession } = await import('../src/modules/sessions/services/
 test('setup verification requires an existing admin, matching license, and pending doctor; writes an audit event', async () => {
   const statements = [];
   const database = {
-    query: async (sql, values) => {
-      statements.push({ sql, values });
-      if (sql.includes("profile.role = 'ADMIN'")) return { rows: [{ id: 'operator-1' }] };
-      if (sql.includes("profile.role = 'DOCTOR'")) return { rows: [{ id: 'doctor-1', verification_status: 'PENDING' }] };
-      throw new Error('Unexpected query');
-    },
     connect: async () => ({
       release() {},
       async query(sql, values) {
         statements.push({ sql, values });
         if (sql.includes('UPDATE public.doctors')) return { rows: [{ id: 'doctor-1', verification_status: 'VERIFIED' }] };
+        if (sql.includes('SELECT app_user.id')) return { rows: [{ id: 'operator-1' }] };
         return { rows: [] };
       },
     }),
   };
   const result = await verifyDemoDoctor({ doctorEmail: 'doctor@example.com',
-    licenseNumber: 'BMDC-123', operatorEmail: 'operator@example.com' }, database);
+    licenseNumber: '123456', operatorEmail: 'operator@example.com' }, database);
   assert.equal(result.verification_status, 'VERIFIED');
-  assert.deepEqual(statements[1].values, ['doctor@example.com', 'BMDC-123']);
+  const update = statements.find(({ sql }) => sql.includes('UPDATE public.doctors'));
+  assert.deepEqual(update.values, ['doctor@example.com', '123456', 'operator-1']);
+  assert.match(update.sql, /doctor\.verification_status = 'PENDING'/);
   const audit = statements.find(({ sql }) => sql.includes('INSERT INTO public.audit_logs'));
-  assert.deepEqual(audit.values.slice(0, 3), ['operator-1', 'DOCTOR', 'doctor-1']);
+  assert.deepEqual(audit.values.slice(0, 2), ['operator-1', 'doctor-1']);
   assert.equal(statements.at(-1).sql, 'COMMIT');
 });
 
 test('setup command refuses missing admin identity and unmatched doctor license', async () => {
   for (const failure of ['admin', 'license']) {
-    let writes = 0;
+    const statements = [];
     const database = {
-      query: async sql => ({ rows: sql.includes("profile.role = 'ADMIN'")
-        ? (failure === 'admin' ? [] : [{ id: 'operator-1' }]) : [] }),
-      connect: async () => { writes += 1; throw new Error('Verification must not write'); },
+      connect: async () => ({
+        release() {},
+        async query(sql) {
+          statements.push(sql);
+          if (sql.includes('SELECT app_user.id')) {
+            return { rows: failure === 'admin' ? [] : [{ id: 'operator-1' }] };
+          }
+          return { rows: [] };
+        },
+      }),
     };
     await assert.rejects(verifyDemoDoctor({ doctorEmail: 'doctor@example.com',
       licenseNumber: 'wrong', operatorEmail: 'operator@example.com' }, database));
-    assert.equal(writes, 0);
+    assert.equal(statements.includes('COMMIT'), false);
+    assert.equal(statements.at(-1), 'ROLLBACK');
+    assert.equal(statements.some(sql => sql.includes('INSERT INTO public.audit_logs')), false);
   }
 });
 

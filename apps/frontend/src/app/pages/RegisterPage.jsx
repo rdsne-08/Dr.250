@@ -56,7 +56,9 @@ export function RegisterPage() {
 
   const activeError = clientError ?? error;
   const errorMessage = activeError
-    ? copy.errors[activeError.code] ?? copy.errors.AUTH_ERROR
+    ? (activeError.code === 'REGISTRATION_REJECTED'
+      ? activeError.message
+      : copy.errors[activeError.code] ?? activeError.message ?? copy.errors.AUTH_ERROR)
     : null;
 
   return (
@@ -138,6 +140,9 @@ export function RegisterPage() {
           {form.role === AUTH_ROLES.DOCTOR ? (
             <Input
               required
+              inputMode="numeric"
+              pattern="[0-9]{5,12}"
+              maxLength={12}
               label={copy.register.licenseNumber ?? authCopy.en.register.licenseNumber}
               placeholder={copy.register.licenseNumberPlaceholder ?? authCopy.en.register.licenseNumberPlaceholder}
               value={form.licenseNumber}

@@ -10,9 +10,9 @@ test('patient grant, doctor read and prescription, patient history, then revocat
   const url = new URL(disposable);
   assert.ok(['localhost', '127.0.0.1'].includes(url.hostname));
   assert.match(url.pathname, /^\/dr250_release_[a-z_]+$/);
-  const [{ createApp }, { query, closeDatabase }, { verifyEntity }] = await Promise.all([
+  const [{ createApp }, { query, closeDatabase }, { verifyDemoDoctor }] = await Promise.all([
     import('../src/app.js'), import('../src/database/pool.js'),
-    import('../src/modules/admin/services/admin.service.js'),
+    import('../scripts/verify-demo-doctor.js'),
   ]);
   const server = await new Promise(resolve => {
     const listener = createApp().listen(0, '127.0.0.1', () => resolve(listener));
@@ -46,7 +46,7 @@ test('patient grant, doctor read and prescription, patient history, then revocat
   try {
     const patientToken = await account('PATIENT');
     const doctorToken = await account('DOCTOR', {
-      specialization: 'General', license_number: `BMDC-WORKFLOW-${suffix}`,
+      specialization: 'General', license_number: '123456789',
     });
     patientId = (await request('GET', '/api/patients/profile', null, patientToken)).data.data.patient.id;
     doctorId = (await request('GET', '/api/doctors/profile', null, doctorToken)).data.data.doctor.id;
@@ -62,7 +62,8 @@ test('patient grant, doctor read and prescription, patient history, then revocat
     users.push(operatorId);
     await query(`INSERT INTO public.profiles (user_id, full_name, role)
       VALUES ($1, 'Workflow operator', 'ADMIN')`, [operatorId]);
-    await verifyEntity({ id: doctorId, entityType: 'DOCTOR', status: 'VERIFIED', adminUserId: operatorId });
+    await verifyDemoDoctor({ doctorEmail: `doctor.${suffix}@example.invalid`,
+      licenseNumber: '123456789', operatorEmail: `operator.${suffix}@example.invalid` });
 
     const beforeGrant = await request('GET', `/api/medical-records/${patientId}`, null, doctorToken);
     assert.equal(beforeGrant.status, 403);

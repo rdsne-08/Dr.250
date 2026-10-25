@@ -82,11 +82,13 @@ export function validateRegistration(request, _response, next) {
         'specialization',
         120,
       );
-      validatedBody.licenseNumber = validateRequiredText(
-        request.body.license_number,
-        'license_number',
-        80,
-      );
+      const licenseNumber = validateRequiredText(request.body.license_number, 'license_number', 12);
+      if (!/^[0-9]{5,12}$/.test(licenseNumber)) {
+        throw new HttpError(400, 'license_number must contain 5 to 12 digits.', {
+          code: 'INVALID_LICENSE_NUMBER',
+        });
+      }
+      validatedBody.licenseNumber = licenseNumber;
     }
 
     request.validatedBody = validatedBody;

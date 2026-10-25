@@ -56,11 +56,14 @@ Open `http://localhost:5173`. Alternatively, from the repository root run `docke
 1. Register a patient and a doctor with real test identities. Doctor registration starts at `PENDING` and does not grant record access.
 2. An operator checks the doctor's identity and medical license outside the application. With database access and an existing internal `ADMIN` identity, run the local verification command from `apps/backend`:
 
-   ```bash
-   node scripts/verify-demo-doctor.js DOCTOR_EMAIL STORED_LICENSE_NUMBER OPERATOR_EMAIL
+   In PowerShell, from the repository root, with `DATABASE_URL` pointing to the intended database:
+
+   ```powershell
+   Set-Location .\apps\backend
+   node .\scripts\verify-demo-doctor.js "doctor@example.com" "12345678" "operator@example.com"
    ```
 
-   Replace the placeholders with the registered doctor's email, exact stored license number, and the existing internal admin email. The command requires a matching pending doctor and records the approval and audit event in one transaction. It creates no account and exposes no public verification route. Never use a made-up operator identity or approve a license without checking it.
+   Replace the example values with the registered doctor's email, their exact stored 5–12 digit BMDC registration number, and an existing trusted internal operator email. The operator must have an `ADMIN` profile. The command requires that exact doctor to be `PENDING`; success prints `Verified doctor <id>; audit event recorded.` It creates no account and exposes no public verification route. Never use a made-up operator identity or approve a license without checking it. Registration syntax checks do not prove that a license is genuine; the operator must check the BMDC register and identity first.
 
    A fresh database has no internal operator identity. The database owner can create one for an actual operator without giving it login credentials. In `psql`, substitute the real operator's email and name before running:
 
@@ -74,6 +77,37 @@ Open `http://localhost:5173`. Alternatively, from the repository root run `docke
 3. Sign in as the patient. In **Doctor access**, choose the verified doctor and grant access. The grant expires after 30 days unless revoked earlier.
 4. Sign in as the doctor. Select the authorized patient, review medical records, and save a prescription.
 5. Sign in as the patient to view the prescription and access history. Revoke the doctor's connection, then confirm the doctor can no longer view records or save prescriptions for that patient.
+
+### Incomplete registration recovery
+
+Registration now validates the license before any account write and creates the user, credentials, profile, and doctor row in one transaction. For an older failed attempt, inspect the specific email before retrying; do not delete accounts or reset the database:
+
+```sql
+SELECT u.id, u.email, p.id AS profile_id, p.role, d.id AS doctor_id,
+       d.verification_status, (c.user_id IS NOT NULL) AS has_local_credentials
+FROM public.users AS u
+LEFT JOIN public.profiles AS p ON p.user_id = u.id
+LEFT JOIN public.doctors AS d ON d.profile_id = p.id
+LEFT JOIN private.account_credentials AS c ON c.user_id = u.id
+WHERE lower(btrim(u.email)) = lower(btrim('doctor@example.com'));
+```
+
+If a doctor profile and local credentials exist but the doctor row is missing, a database operator can attach one after checking the identity, specialization, and license. Run this only for the reviewed email; substitute the actual values and require exactly one returned row before committing:
+
+```sql
+BEGIN;
+INSERT INTO public.doctors (profile_id, specialization, license_number)
+SELECT p.id, 'CHECKED_SPECIALIZATION', '12345678'
+FROM public.users AS u
+JOIN public.profiles AS p ON p.user_id = u.id AND p.role = 'DOCTOR'
+JOIN private.account_credentials AS c ON c.user_id = u.id
+WHERE lower(btrim(u.email)) = lower(btrim('doctor@example.com'))
+  AND NOT EXISTS (SELECT 1 FROM public.doctors AS d WHERE d.profile_id = p.id)
+RETURNING id, verification_status;
+-- COMMIT only if exactly one PENDING row returned; otherwise ROLLBACK.
+```
+
+If the profile or credentials are missing, or the role differs, investigate the existing account and legacy authentication before making any change. Keep the existing user ID and have the doctor log in after repair. Verification still requires the separate trusted-operator step above.
 
 ## Checks
 
