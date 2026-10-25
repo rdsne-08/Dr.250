@@ -24,7 +24,7 @@ test('fresh and historical databases migrate without data loss; approvals and pa
     for (const variant of ['fresh', 'historical', 'nonai']) {
       const name = `dr250_release_${variant}`;
       // Refuse existing resources; this test never resets a database.
-      await admin.query(`CREATE DATABASE ${name}`);
+      await admin.query(`CREATE DATABASE ${name} TEMPLATE template0`);
       const target = new URL(disposable); target.pathname = '/' + name;
       const client = new pg.Client({ connectionString: target.href }); await client.connect();
       const pool = new pg.Pool({ connectionString: target.href });
