@@ -73,7 +73,7 @@ async function getSession() {
 
   try {
     const payload = await apiClient.get(AUTH_API_CONTRACT.session);
-    return { user: normalizeUser(payload), provider: 'supabase' };
+    return { user: normalizeUser(payload), provider: 'backend' };
   } catch (error) {
     clearApiSession();
     if (error instanceof ApiError && error.status === 401) return null;
@@ -101,7 +101,7 @@ async function login(credentials) {
       expiresIn: payload.expires_in,
     }, credentials.remember);
 
-    return { user, provider: 'supabase' };
+    return { user, provider: 'backend' };
   } catch (error) {
     clearApiSession();
     throw normalizeAuthError(error);

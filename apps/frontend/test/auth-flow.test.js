@@ -58,7 +58,7 @@ test('API success envelopes are unwrapped and backend errors keep message and co
   );
 });
 
-test('patient registration logs in and stores the returned Supabase session', async () => {
+test('patient registration logs in and stores the returned backend session', async () => {
   const requests = [];
   globalThis.fetch = async (url, options) => {
     requests.push({ url, options });
@@ -248,7 +248,7 @@ test('stored JWT restores the authenticated patient through /api/auth/me', async
 
   const session = await authService.getSession();
   assert.deepEqual(session, {
-    provider: 'supabase',
+    provider: 'backend',
     user: {
       id: 'user-id',
       profileId: 'profile-id',

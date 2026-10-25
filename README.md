@@ -56,3 +56,23 @@ cd ../.. && docker compose config --quiet
 ```
 
 The optional database-backed release test needs a disposable PostgreSQL database configured through `DR250_DISPOSABLE_URL`. Do not point it at production data.
+
+The backend also includes `test/patient-doctor-workflow.test.js` and an account
+integration test. Set `AUTH_INTEGRATION_URL` to a **migrated, disposable,
+loopback** database named `dr250_release_*`, then run `npm test` from
+`apps/backend`. These tests exercise HTTP registration and login, duplicate
+email rejection, doctor verification, patient grant, record access,
+prescription persistence and patient visibility, access history, and revocation.
+They clean up their test accounts. Keep this URL separate from your normal
+application database.
+
+## Project structure
+
+- `apps/frontend/src/app`, `portals/patient`, and `portals/doctor`: the two role interfaces.
+- `apps/frontend/src/services`: authenticated API calls.
+- `apps/backend/src/modules`: authentication, patient and doctor APIs, records,
+  prescriptions, access sessions, and auditing.
+- `apps/backend/scripts/verify-demo-doctor.js`: local audited verification command.
+- `database/migrations`: forward-only schema history. Earlier lab and access
+  session columns remain for compatibility with existing data; the application
+  does not expose laboratory or QR/PIN workflows.

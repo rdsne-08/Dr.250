@@ -65,35 +65,3 @@ export async function getAuthorizedPatients(doctorId, database = pool) {
   );
   return result.rows;
 }
-
-export async function hasActivePatientAccess(doctorId, patientId, database = pool) {
-  const result = await query(
-    `
-      SELECT EXISTS (
-        SELECT 1
-        FROM public.access_sessions
-        WHERE doctor_id = $1
-          AND patient_id = $2
-          AND status = 'ACTIVE' AND revoked_at IS NULL
-          AND expires_at > now()
-      ) AS authorized
-    `,
-    [doctorId, patientId],
-    database,
-  );
-  return result.rows[0]?.authorized === true;
-}
-
-export async function assertDoctorPatientAccess(doctor, patientId, database = pool) {
-  if (doctor.verification_status !== 'VERIFIED') {
-    throw new HttpError(403, 'A verified doctor profile is required.', {
-      code: 'DOCTOR_NOT_VERIFIED',
-    });
-  }
-
-  if (!(await hasActivePatientAccess(doctor.id, patientId, database))) {
-    throw new HttpError(403, 'An active patient access session is required.', {
-      code: 'PATIENT_ACCESS_DENIED',
-    });
-  }
-}
