@@ -1,100 +1,11 @@
-# Dr.250 Database
+# Dr.250 database
 
-The Dr.250 database targets PostgreSQL 16 with the `pgcrypto`
-extension. Numbered files in `migrations/` are the source of truth.
-`schema.sql` is the canonical `psql` entry point and applies those migrations in
-dependency order.
+PostgreSQL 16 and `pgcrypto` are required. The numbered SQL files in `migrations/` are forward-only schema history. Legacy laboratory and access-session columns remain to preserve existing data. `retired-migrations/012_embeddings.sql` archives the former AI migration and is excluded from fresh installs.
 
-## Environment
+Set `DATABASE_URL` and `DATABASE_SSL` as described in the [root README](../README.md). For a new or existing application database, run `npm run db:migrate` from `apps/backend`. The migration runner tracks applied files and preserves existing rows. Do not recreate a populated database or rerun `schema.sql` over one.
 
-The backend requires:
+`schema.sql` is a historical `psql` bootstrap for the original schema. Its seed and security scripts also cover former roles; they are retained for historical compatibility and are not the current two-role application setup. Use the backend migration runner and the root README's patient and doctor demonstration for current work.
 
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sasthosetu
-DATABASE_SSL=false
-```
+For disposable database integration tests, set `DR250_DISPOSABLE_URL` and `AUTH_INTEGRATION_URL` to a migrated, loopback PostgreSQL database named `dr250_release_*`, then run `npm test` from `apps/backend`. The tests cover migration compatibility and the patient grant, doctor read, prescription, and revocation flow. Never point these variables at production data.
 
-Use `DATABASE_SSL=true` for a hosted provider that requires TLS. The backend
-does not log the connection string and converts driver failures into a sanitized
-`DatabaseError`.
-
-For the real backend service integration test, also set:
-
-```env
-DATABASE_INTEGRATION_URL=postgresql://postgres:postgres@localhost:5432/dr250_test
-```
-
-Never point `DATABASE_INTEGRATION_URL` at a production database. The integration
-test creates development-only records.
-
-## Migration order
-
-1. `001_extensions.sql`
-2. `002_users.sql`
-3. `003_profiles.sql`
-4. `004_patients.sql`
-5. `005_doctors.sql`
-6. `006_laboratories.sql`
-7. `007_medical_records.sql`
-8. `008_prescriptions.sql`
-9. `009_lab_reports.sql`
-10. `010_access_sessions.sql`
-11. `011_audit_logs.sql`
-12. `policies.sql`
-13. `seed.sql` for development only
-
-Apply a fresh development database with `psql`:
-
-```bash
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/schema.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/policies.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/seed.sql
-```
-
-The numbered migrations are intentionally forward-only and should be applied to
-a fresh database in this order. Do not rerun `schema.sql` over an existing
-schema. Add a new numbered migration for later schema changes.
-
-## Development seed
-
-`seed.sql` contains deterministic development identities for one patient,
-doctor, laboratory, and administrator, plus representative medical data and an
-active doctor-access session. It contains no production credentials or usable
-access-session secret.
-
-The seeded `users.id` values mirror the IDs that Supabase Auth must return. To
-exercise authenticated HTTP APIs, provision matching development-only Supabase
-users or replace the seed UUIDs with the development Auth user IDs.
-
-## Verification
-
-On a fresh test database, run:
-
-```bash
-psql "$DATABASE_INTEGRATION_URL" -v ON_ERROR_STOP=1 -f database/schema.sql
-psql "$DATABASE_INTEGRATION_URL" -v ON_ERROR_STOP=1 -f database/policies.sql
-psql "$DATABASE_INTEGRATION_URL" -v ON_ERROR_STOP=1 -f database/seed.sql
-psql "$DATABASE_INTEGRATION_URL" -v ON_ERROR_STOP=1 -f database/tests/verify.sql
-psql "$DATABASE_INTEGRATION_URL" -v ON_ERROR_STOP=1 -f database/tests/security.sql
-```
-
-Then run the backend service flow:
-
-```bash
-cd apps/backend
-npm run test:database
-npm test
-npm run check
-```
-
-The verification scripts check extensions, tables, foreign keys, indexes,
-constraints, RLS enablement, seed roles, patient isolation, doctor access
-sessions, laboratory assignment isolation, and administrator access. All
-security test data is wrapped in a transaction and rolled back.
-
-## Backend connection lifecycle
-
-`apps/backend/src/database/pool.js` owns the shared PostgreSQL pool. Queries are
-parameterized through `query()`, multi-step writes use `withTransaction()`, and
-the server calls `closeDatabase()` during graceful shutdown. Database readiness
-is exposed separately at `GET /api/health/database`.
+`apps/backend/src/database/pool.js` owns the shared pool. The server exposes separate HTTP and database readiness endpoints at `/api/health` and `/api/health/database`.
