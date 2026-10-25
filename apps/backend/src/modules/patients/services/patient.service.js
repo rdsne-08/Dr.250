@@ -85,24 +85,3 @@ export async function getOwnPrescriptions(userId, database = pool) {
   );
   return result.rows;
 }
-
-export async function getOwnReports(userId, database = pool) {
-  const result = await query(
-    `
-      SELECT report.id, report.patient_id, report.laboratory_id,
-             report.requested_by_doctor_id, report.test_name,
-             report.report_url AS file_url, report.status,
-             report.created_at, report.updated_at,
-             laboratory.lab_name
-      FROM public.lab_reports AS report
-      INNER JOIN public.patients AS patient ON patient.id = report.patient_id
-      INNER JOIN public.profiles AS profile ON profile.id = patient.profile_id
-      INNER JOIN public.laboratories AS laboratory ON laboratory.id = report.laboratory_id
-      WHERE profile.user_id = $1
-      ORDER BY report.created_at DESC
-    `,
-    [userId],
-    database,
-  );
-  return result.rows;
-}

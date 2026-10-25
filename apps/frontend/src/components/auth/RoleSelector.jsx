@@ -1,4 +1,4 @@
-import { FlaskConical, HeartPulse, ShieldCheck, Stethoscope } from 'lucide-react';
+import { HeartPulse, Stethoscope } from 'lucide-react';
 
 import { cn } from '../../lib/classNames.js';
 import { AUTH_ROLES } from '../../services/authService.js';
@@ -6,8 +6,6 @@ import { AUTH_ROLES } from '../../services/authService.js';
 const roleIcons = {
   [AUTH_ROLES.PATIENT]: HeartPulse,
   [AUTH_ROLES.DOCTOR]: Stethoscope,
-  [AUTH_ROLES.LAB]: FlaskConical,
-  [AUTH_ROLES.ADMIN]: ShieldCheck,
 };
 
 export function RoleSelector({ copy, label, name = 'role', onChange, value }) {

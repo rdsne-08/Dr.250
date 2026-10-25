@@ -25,7 +25,7 @@ export async function findProfileByUserId(userId, database = pool) {
 }
 
 export async function createProfile(
-  { userId, email, fullName, role, specialization, labName, licenseNumber, passwordHash },
+  { userId, email, fullName, role, specialization, licenseNumber, passwordHash },
   database = pool,
 ) {
   const normalizedEmail = email.trim().toLowerCase();
@@ -53,7 +53,6 @@ export async function createProfile(
 
     let patientId;
     let doctor;
-    let laboratory;
     if (role === 'PATIENT') {
       const patientResult = await transaction.query(
         `
@@ -78,18 +77,6 @@ export async function createProfile(
       doctor = doctorResult.rows[0];
     }
 
-    if (role === 'LAB') {
-      const laboratoryResult = await transaction.query(
-        `
-          INSERT INTO public.laboratories (profile_id, lab_name, license_number)
-          VALUES ($1, $2, $3)
-          RETURNING id, lab_name, license_number, verification_status
-        `,
-        [result.rows[0].profile_id, labName, licenseNumber],
-      );
-      laboratory = laboratoryResult.rows[0];
-    }
-
     return {
       ...result.rows[0],
       email: normalizedEmail,
@@ -100,14 +87,6 @@ export async function createProfile(
             specialization: doctor.specialization,
             license_number: doctor.license_number,
             verification_status: doctor.verification_status,
-          }
-        : {}),
-      ...(laboratory
-        ? {
-            laboratory_id: laboratory.id,
-            lab_name: laboratory.lab_name,
-            license_number: laboratory.license_number,
-            verification_status: laboratory.verification_status,
           }
         : {}),
     };

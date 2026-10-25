@@ -9,15 +9,11 @@ import {
 export const AUTH_ROLES = Object.freeze({
   PATIENT: 'PATIENT',
   DOCTOR: 'DOCTOR',
-  LAB: 'LAB',
-  ADMIN: 'ADMIN',
 });
 
 export const ROLE_HOME = Object.freeze({
   [AUTH_ROLES.PATIENT]: '/patient',
   [AUTH_ROLES.DOCTOR]: '/doctor',
-  [AUTH_ROLES.LAB]: '/lab',
-  [AUTH_ROLES.ADMIN]: '/admin',
 });
 
 export const AUTH_API_CONTRACT = Object.freeze({
@@ -131,14 +127,6 @@ async function register(details) {
     throw new AuthServiceError('Please enter your license number.', 'INVALID_LICENSE_NUMBER');
   }
 
-  if (details.role === AUTH_ROLES.LAB && !details.labName?.trim()) {
-    throw new AuthServiceError('Please enter the laboratory name.', 'INVALID_LAB_NAME');
-  }
-
-  if (details.role === AUTH_ROLES.LAB && !details.licenseNumber?.trim()) {
-    throw new AuthServiceError('Please enter the laboratory license number.', 'INVALID_LAB_LICENSE_NUMBER');
-  }
-
   try {
     const registration = {
       email: details.email.trim(),
@@ -152,10 +140,6 @@ async function register(details) {
       registration.license_number = details.licenseNumber.trim();
     }
 
-    if (details.role === AUTH_ROLES.LAB) {
-      registration.lab_name = details.labName.trim();
-      registration.license_number = details.licenseNumber.trim();
-    }
 
     await apiClient.post(AUTH_API_CONTRACT.register, registration, { auth: false });
 

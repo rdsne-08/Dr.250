@@ -1,7 +1,7 @@
 import { HttpError } from '../../../middleware/http-error.js';
 
 export const SUPPORTED_ROLES = Object.freeze(['PATIENT', 'DOCTOR', 'LAB', 'ADMIN']);
-export const SELF_REGISTER_ROLES = Object.freeze(['PATIENT', 'DOCTOR', 'LAB']);
+export const SELF_REGISTER_ROLES = Object.freeze(['PATIENT', 'DOCTOR']);
 
 function requireJsonObject(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -82,15 +82,6 @@ export function validateRegistration(request, _response, next) {
         'specialization',
         120,
       );
-      validatedBody.licenseNumber = validateRequiredText(
-        request.body.license_number,
-        'license_number',
-        80,
-      );
-    }
-
-    if (role === 'LAB') {
-      validatedBody.labName = validateRequiredText(request.body.lab_name, 'lab_name', 160);
       validatedBody.licenseNumber = validateRequiredText(
         request.body.license_number,
         'license_number',

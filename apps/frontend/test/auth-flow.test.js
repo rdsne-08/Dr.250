@@ -272,18 +272,6 @@ test('patient dashboard loads real data from authenticated backend endpoints', a
     '/api/patients/prescriptions': {
       prescriptions: [{ id: 'prescription-id', created_at: '2026-09-21T10:00:00.000Z' }],
     },
-    '/api/patients/reports': {
-      reports: [{ id: 'report-id', created_at: '2026-09-22T10:00:00.000Z' }],
-    },
-    '/api/sessions': {
-      sessions: [{
-        id: 'session-id',
-        doctor_name: 'Dr. Example',
-        status: 'ACTIVE',
-        expires_at: '2099-01-01T00:00:00.000Z',
-        revoked_at: null,
-      }],
-    },
   };
 
   globalThis.fetch = async (url, options) => {
@@ -299,9 +287,9 @@ test('patient dashboard loads real data from authenticated backend endpoints', a
   const dashboard = await patientService.getDashboard();
 
   assert.equal(dashboard.patient.id, 'patient-id');
-  assert.equal(dashboard.patient.name.en, 'Patient Example');
-  assert.equal(dashboard.patient.activeMedicines, 1);
-  assert.equal(dashboard.doctorAccess.activeSessions, 1);
+  assert.equal(dashboard.patient.full_name, 'Patient Example');
+  assert.equal(dashboard.prescriptions.length, 1);
+  assert.equal(dashboard.records.length, 1);
   assert.deepEqual(requestedPaths.sort(), Object.keys(responses).sort());
 });
 
@@ -330,10 +318,6 @@ test('doctor dashboard loads only authorized patients and their clinical history
         last_accessed_at: '2026-09-20T10:00:00.000Z',
       }],
     },
-    '/api/doctors/sessions': {
-      sessions: [{ expires_at: '2099-01-01T00:00:00.000Z', revoked_at: null }],
-    },
-    '/api/doctors/laboratories': { laboratories: [] },
     [`/api/medical-records/${patientId}`]: {
       records: [{ diagnosis: 'Hypertension', notes: 'Blood pressure improving.', date: '2026-09-20' }],
     },
@@ -345,9 +329,6 @@ test('doctor dashboard loads only authorized patients and their clinical history
         instructions: 'After breakfast',
         created_at: '2026-09-21T10:00:00.000Z',
       }],
-    },
-    [`/api/reports/${patientId}`]: {
-      reports: [{ test_name: 'Lipid profile', status: 'COMPLETED', created_at: '2026-09-22T10:00:00.000Z' }],
     },
   };
 
@@ -363,10 +344,11 @@ test('doctor dashboard loads only authorized patients and their clinical history
 
   const dashboard = await doctorService.getDashboard();
 
-  assert.equal(dashboard.doctor.name.en, 'Dr. Example');
+  assert.equal(dashboard.doctor.full_name, 'Dr. Example');
   assert.equal(dashboard.patients.length, 1);
-  assert.equal(dashboard.patients[0].name.en, 'Authorized Patient');
-  assert.equal(dashboard.patients[0].history.length, 3);
+  assert.equal(dashboard.patients[0].full_name, 'Authorized Patient');
+  assert.equal(dashboard.patients[0].records.length, 1);
+  assert.equal(dashboard.patients[0].prescriptions.length, 1);
   assert.deepEqual(requestedPaths.sort(), Object.keys(responses).sort());
 });
 
@@ -418,8 +400,6 @@ test('prescription creation submits all fields and appears in the patient dashbo
         created_at: '2026-09-26T10:00:00.000Z',
       }],
     },
-    '/api/patients/reports': { reports: [] },
-    '/api/sessions': { sessions: [] },
   };
   globalThis.fetch = async (url) => new Response(JSON.stringify({
     success: true,
@@ -427,8 +407,7 @@ test('prescription creation submits all fields and appears in the patient dashbo
   }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
   const patientDashboard = await patientService.getDashboard();
-  const prescriptionEvent = patientDashboard.timeline.find((event) => event.type === 'prescription');
-  assert.equal(patientDashboard.patient.activeMedicines, 1);
-  assert.equal(prescriptionEvent.title, 'Prescription: Amlodipine 5 mg');
-  assert.match(prescriptionEvent.detail, /Once daily · 30 days · Take after breakfast\./);
+  assert.equal(patientDashboard.prescriptions.length, 1);
+  assert.equal(patientDashboard.prescriptions[0].medicine, 'Amlodipine 5 mg');
+  assert.equal(patientDashboard.prescriptions[0].instructions, 'Take after breakfast.');
 });

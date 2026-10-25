@@ -4,7 +4,6 @@ import { sendSuccess } from '../../../middleware/response.js';
 import {
   createPatientSession,
   getVerifiedDoctors,
-  redeemPatientSession,
   getDoctorSessions,
   getPatientSessions,
   revokePatientSession,
@@ -26,7 +25,6 @@ export async function createSession(request, response) {
     patientId: patient.id,
     ...request.validatedBody,
   });
-  response.set('Cache-Control', 'no-store');
   sendSuccess(response, { session }, 201);
 }
 
@@ -38,8 +36,4 @@ export async function revokeSession(request, response) {
 
 export async function verifiedDoctors(_request, response) {
   sendSuccess(response, { doctors: await getVerifiedDoctors() });
-}
-export async function redeemSession(request, response) {
-  response.set('Cache-Control', 'no-store');
-  sendSuccess(response, { session: await redeemPatientSession(request.user, request.body?.credential) });
 }

@@ -1,125 +1,51 @@
 import { AccessLogs } from '../components/AccessLogs.jsx';
-import { useMemo } from 'react';
-import { FileHeart, Pill } from 'lucide-react';
-
-import { authCopy } from '../../../components/auth/authCopy.js';
+import { DoctorAccessCard } from '../components/DoctorAccessCard.jsx';
 import { ErrorState } from '../../../components/feedback/ErrorState.jsx';
 import { LoadingScreen } from '../../../components/feedback/LoadingScreen.jsx';
-import { EmptyState } from '../../../components/ui/index.js';
+import { LogoutButton } from '../../../components/auth/LogoutButton.jsx';
+import { Button, Card } from '../../../components/ui/index.js';
 import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
-import { useLanguage } from '../../../hooks/useLanguage.js';
 import { patientService } from '../../../services/patientService.js';
-import { getApiErrorMessage } from '../../../services/apiErrorMessages.js';
-import { DoctorAccessCard } from '../components/DoctorAccessCard.jsx';
-import { HealthOverview } from '../components/HealthOverview.jsx';
-import { HealthTimeline } from '../components/HealthTimeline.jsx';
-import { PatientLayout } from '../components/PatientLayout.jsx';
-import { PatientWelcome } from '../components/PatientWelcome.jsx';
-import { QuickActions } from '../components/QuickActions.jsx';
-import { patientCopy } from '../data/patientCopy.js';
 
 export function PatientDashboard() {
-  const { language, toggleLanguage } = useLanguage();
-  const copy = patientCopy[language];
-  const stateCopy = authCopy[language].portalStates;
-  const { data: sourceData, error, isLoading, reload } = useAsyncResource(
-    patientService.getDashboard,
-  );
+  const { data, error, isLoading, reload } = useAsyncResource(patientService.getDashboard);
+  if (isLoading) return <LoadingScreen label="Loading your medical history…" />;
+  if (error || !data) return <ErrorState title="Could not load your medical history"
+    description={error?.message || 'Please try again.'} actionLabel="Retry" onRetry={reload} />;
 
-  const localizedData = useMemo(
-    () => {
-      if (!sourceData) return null;
-
-      const numberFormatter = new Intl.NumberFormat(language === 'bn' ? 'bn-BD' : 'en-US');
-
-      return {
-        ...sourceData,
-        patient: {
-          ...sourceData.patient,
-          name: sourceData.patient.name[language],
-          activeMedicines: numberFormatter.format(sourceData.patient.activeMedicines),
-        },
-        overview: sourceData.overview.map((item) => ({
-          ...item,
-          value: numberFormatter.format(item.value),
-          detailValue:
-            typeof item.detailValue === 'object' ? item.detailValue[language] : item.detailValue,
-        })),
-        doctorAccess: {
-          ...sourceData.doctorAccess,
-          activeSessions: numberFormatter.format(sourceData.doctorAccess.activeSessions),
-          doctorName: sourceData.doctorAccess.doctorName[language],
-          expiresAt: sourceData.doctorAccess.expiresAt[language],
-        },
-      };
-    },
-    [language, sourceData],
-  );
-
-  if (isLoading) return <LoadingScreen label={stateCopy.loading} />;
-  if (error || !localizedData) {
-    return (
-      <ErrorState
-        title={stateCopy.errorTitle}
-        description={getApiErrorMessage(error, language, stateCopy.errorBody)}
-        actionLabel={stateCopy.retry}
-        onRetry={reload}
-      />
-    );
-  }
-
-  const hasRecords = sourceData.overview.find((item) => item.id === 'records')?.value > 0;
-  const hasPrescriptions =
-    sourceData.overview.find((item) => item.id === 'prescriptions')?.value > 0;
-
-  return (
-    <PatientLayout
-      copy={copy}
-      patient={localizedData.patient}
-      onToggleLanguage={toggleLanguage}
-    >
-      <main
-        id="patient-dashboard"
-        className="mx-auto max-w-[96rem] scroll-mt-24 px-4 pb-28 pt-6 sm:px-7 sm:pt-8 lg:px-10 lg:pb-12"
-      >
-        <PatientWelcome copy={copy} patient={localizedData.patient} />
-
-        <div className="mt-10">
-          <HealthOverview copy={copy} items={localizedData.overview} />
-        </div>
-
-        {!hasRecords || !hasPrescriptions ? (
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            {!hasRecords ? (
-              <EmptyState
-                icon={FileHeart}
-                title={copy.states.emptyRecordsTitle}
-                description={copy.states.emptyRecordsBody}
-              />
-            ) : null}
-            {!hasPrescriptions ? (
-              <EmptyState
-                icon={Pill}
-                title={copy.states.noPrescriptionsTitle}
-                description={copy.states.noPrescriptionsBody}
-                actionLabel={copy.states.noPrescriptionsAction}
-                actionHref="#health-timeline"
-              />
-            ) : null}
-          </div>
-        ) : null}
-
-        <div className="mt-8 grid items-start gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
-          <HealthTimeline copy={copy} events={localizedData.timeline} language={language} />
-          <QuickActions copy={copy} actions={localizedData.quickActions}
-            hasReports={sourceData.overview.find((item) => item.id === 'reports')?.value > 0} />
-        </div>
-
-        <div id="doctor-access" className="mt-5 scroll-mt-24 grid items-start gap-5 xl:grid-cols-2">
-          <DoctorAccessCard copy={copy} language={language} />
-        </div>
-        <AccessLogs copy={copy} language={language} />
-      </main>
-    </PatientLayout>
-  );
+  return <main className="min-h-screen bg-canvas p-4 sm:p-8">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <header className="flex items-center justify-between gap-4">
+        <div><h1 className="text-3xl font-bold">My medical history</h1>
+          <p>{data.patient.full_name}</p></div>
+        <LogoutButton />
+      </header>
+      <nav className="flex flex-wrap gap-3" aria-label="Patient sections">
+        <a href="#medical-records">Medical records</a>
+        <a href="#prescriptions">Prescriptions</a>
+        <a href="#doctor-access">Doctor access</a>
+        <a href="#access-logs">Access history</a>
+      </nav>
+      <Button variant="outline" onClick={reload}>Refresh history</Button>
+      <Card id="medical-records" className="scroll-mt-24 p-6"><h2 className="text-xl font-bold">Medical records</h2>
+        {data.records.length === 0 ? <p className="mt-3">No medical records yet.</p> :
+          <ul className="mt-3 divide-y">{data.records.map(record => <li key={record.id} className="py-3">
+            <strong>{record.title || 'Medical record'}</strong>
+            {record.description && <p>{record.description}</p>}
+            {record.created_at && <time className="text-sm text-ink-500" dateTime={record.created_at}>
+              {new Date(record.created_at).toLocaleDateString()}</time>}
+          </li>)}</ul>}
+      </Card>
+      <Card id="prescriptions" className="scroll-mt-24 p-6"><h2 className="text-xl font-bold">Prescriptions</h2>
+        {data.prescriptions.length === 0 ? <p className="mt-3">No prescriptions yet.</p> :
+          <ul className="mt-3 divide-y">{data.prescriptions.map(item => <li key={item.id} className="py-3">
+            <strong>{item.medicine}</strong> · {item.dosage}
+            {item.doctor_name && <p>Prescribed by {item.doctor_name}</p>}
+            {item.instructions && <p>{item.instructions}</p>}
+          </li>)}</ul>}
+      </Card>
+      <section id="doctor-access" className="scroll-mt-24"><DoctorAccessCard onChanged={reload} /></section>
+      <AccessLogs />
+    </div>
+  </main>;
 }

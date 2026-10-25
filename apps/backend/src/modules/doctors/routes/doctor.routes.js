@@ -4,7 +4,6 @@ import { authenticate } from '../../auth/middleware/auth.js';
 import { requireRole } from '../../auth/middleware/requireRole.js';
 import {
   createPrescription,
-  laboratories,
   patients,
   profile,
   sessions,
@@ -18,6 +17,5 @@ doctorRouter.use(authenticate, requireRole('DOCTOR'));
 doctorRouter.get('/profile', profile);
 doctorRouter.use(requireVerifiedDoctor);
 doctorRouter.get('/patients', patients);
-doctorRouter.get('/laboratories', laboratories);
 doctorRouter.get('/sessions', sessions);
 doctorRouter.post('/prescriptions', validateCreatePrescription, createPrescription);

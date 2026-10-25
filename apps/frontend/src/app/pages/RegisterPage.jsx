@@ -19,7 +19,6 @@ export function RegisterPage() {
     confirmPassword: '',
     confirmed: false,
     email: '',
-    labName: '',
     licenseNumber: '',
     name: '',
     password: '',
@@ -136,24 +135,11 @@ export function RegisterPage() {
               onChange={(event) => updateField('specialization', event.target.value)}
             />
           ) : null}
-          {form.role === AUTH_ROLES.LAB ? (
+          {form.role === AUTH_ROLES.DOCTOR ? (
             <Input
               required
-              label={copy.register.labName ?? authCopy.en.register.labName}
-              placeholder={copy.register.labNamePlaceholder ?? authCopy.en.register.labNamePlaceholder}
-              value={form.labName}
-              onChange={(event) => updateField('labName', event.target.value)}
-            />
-          ) : null}
-          {[AUTH_ROLES.DOCTOR, AUTH_ROLES.LAB].includes(form.role) ? (
-            <Input
-              required
-              label={form.role === AUTH_ROLES.LAB
-                ? copy.register.labLicenseNumber ?? authCopy.en.register.labLicenseNumber
-                : copy.register.licenseNumber ?? authCopy.en.register.licenseNumber}
-              placeholder={form.role === AUTH_ROLES.LAB
-                ? copy.register.labLicenseNumberPlaceholder ?? authCopy.en.register.labLicenseNumberPlaceholder
-                : copy.register.licenseNumberPlaceholder ?? authCopy.en.register.licenseNumberPlaceholder}
+              label={copy.register.licenseNumber ?? authCopy.en.register.licenseNumber}
+              placeholder={copy.register.licenseNumberPlaceholder ?? authCopy.en.register.licenseNumberPlaceholder}
               value={form.licenseNumber}
               onChange={(event) => updateField('licenseNumber', event.target.value)}
             />

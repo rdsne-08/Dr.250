@@ -5,7 +5,6 @@ import { HttpError } from '../../../middleware/http-error.js';
 import {
   findDoctorByUserId,
   getAuthorizedPatients,
-  getAvailableLaboratories,
 } from '../services/doctor.service.js';
 
 export async function profile(request, response) {
@@ -23,10 +22,6 @@ export async function patients(request, response) {
 
 export async function sessions(request, response) {
   sendSuccess(response, { sessions: await getDoctorSessions(request.doctor.id) });
-}
-
-export async function laboratories(_request, response) {
-  sendSuccess(response, { laboratories: await getAvailableLaboratories() });
 }
 
 export async function createPrescription(request, response) {

@@ -105,7 +105,6 @@ test('registration persists a patient; login, duplicates, wrong password, sessio
     assert.equal(revoked.status, 401);
     for (const [role, extra] of [
       ['DOCTOR', { specialization: 'General', license_number: 'TEST-BMDC' }],
-      ['LAB', { lab_name: 'Test Lab', license_number: 'TEST-LAB' }],
     ]) {
       const provider = await post('/api/auth/register', {
         ...registration, email: `${role.toLowerCase()}.${email}`, role, ...extra,
@@ -116,6 +115,8 @@ test('registration persists a patient; login, duplicates, wrong password, sessio
     }
     const admin = await post('/api/auth/register', { ...registration, role: 'ADMIN' });
     assert.equal(admin.status, 400);
+    const lab = await post('/api/auth/register', { ...registration, role: 'LAB' });
+    assert.equal(lab.status, 400);
   } finally {
     for (const userId of userIds) await query('DELETE FROM public.users WHERE id=$1', [userId]);
     await new Promise(resolve => server.close(resolve));

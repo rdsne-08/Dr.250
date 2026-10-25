@@ -2,7 +2,6 @@ import { getOwnAccessLogs } from '../../sessions/services/audit.service.js';
 import {
   getOwnMedicalRecords,
   getOwnPrescriptions,
-  getOwnReports,
   getPatientProfile,
 } from '../services/patient.service.js';
 import { sendSuccess } from '../../../middleware/response.js';
@@ -17,10 +16,6 @@ export async function records(request, response) {
 
 export async function prescriptions(request, response) {
   sendSuccess(response, { prescriptions: await getOwnPrescriptions(request.user.id) });
-}
-
-export async function reports(request, response) {
-  sendSuccess(response, { reports: await getOwnReports(request.user.id) });
 }
 
 export async function accessLogs(request, response) {

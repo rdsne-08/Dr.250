@@ -1,166 +1,91 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 
-import { authCopy } from '../../../components/auth/authCopy.js';
 import { ErrorState } from '../../../components/feedback/ErrorState.jsx';
 import { LoadingScreen } from '../../../components/feedback/LoadingScreen.jsx';
-import { Badge, Card } from '../../../components/ui/index.js';
+import { LogoutButton } from '../../../components/auth/LogoutButton.jsx';
+import { Button, Card, Input } from '../../../components/ui/index.js';
 import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
-import { useLanguage } from '../../../hooks/useLanguage.js';
 import { doctorService } from '../../../services/doctorService.js';
-import { getApiErrorMessage } from '../../../services/apiErrorMessages.js';
-import { ConsultationWorkspace } from '../components/ConsultationWorkspace.jsx';
-import { AccessRedemptionCard } from '../components/AccessRedemptionCard.jsx';
-import { DoctorLayout } from '../components/DoctorLayout.jsx';
-import { DoctorOverview } from '../components/DoctorOverview.jsx';
-import { LabOrderForm } from '../components/LabOrderForm.jsx';
-import { PatientManagement } from '../components/PatientManagement.jsx';
-import { doctorCopy } from '../data/doctorCopy.js';
 
-function localize(value, language) {
-  return typeof value === 'object' && value !== null && language in value
-    ? value[language]
-    : value;
-}
+const emptyPrescription = { medicine: '', dosage: '', duration: '', instructions: '' };
 
 export function DoctorPortalPage() {
-  const { language, toggleLanguage } = useLanguage();
-  const copy = doctorCopy[language];
-  const stateCopy = authCopy[language].portalStates;
-  const { data: sourceData, error, isLoading, reload } = useAsyncResource(
-    doctorService.getDashboard,
-  );
-  const [selectedPatientId, setSelectedPatientId] = useState(null);
+  const { data, error, isLoading, reload } = useAsyncResource(doctorService.getDashboard);
+  const [patientId, setPatientId] = useState('');
+  const [form, setForm] = useState(emptyPrescription);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [saveError, setSaveError] = useState('');
 
-  useEffect(() => {
-    if (!sourceData?.patients?.length) {
-      setSelectedPatientId(null);
-      return;
-    }
+  if (isLoading) return <LoadingScreen label="Loading authorized patients…" />;
+  if (error || !data) return <ErrorState title="Could not load doctor workspace"
+    description={error?.message || 'Please try again.'} actionLabel="Retry" onRetry={reload} />;
 
-    setSelectedPatientId((current) =>
-      sourceData.patients.some((patient) => patient.id === current)
-        ? current
-        : sourceData.patients[0].id,
-    );
-  }, [sourceData]);
+  const selected = data.patients.find(patient => patient.id === patientId) ?? data.patients[0];
 
-  const localizedData = useMemo(() => {
-    if (!sourceData) return null;
-
-    const numberFormatter = new Intl.NumberFormat(language === 'bn' ? 'bn-BD' : 'en-US');
-
-    return {
-      ...sourceData,
-      doctor: {
-        ...sourceData.doctor,
-        name: localize(sourceData.doctor.name, language),
-        specialty: localize(sourceData.doctor.specialty, language),
-      },
-      stats: sourceData.stats.map((stat) => ({
-        ...stat,
-        value: numberFormatter.format(stat.value),
-      })),
-      appointments: sourceData.appointments.map((appointment) => ({
-        ...appointment,
-        patientName: localize(appointment.patientName, language),
-        reason: localize(appointment.reason, language),
-        age: numberFormatter.format(appointment.age),
-      })),
-      patients: sourceData.patients.map((patient) => ({
-        ...patient,
-        name: localize(patient.name, language),
-        age: numberFormatter.format(patient.age),
-        sex: localize(patient.sex, language),
-        summary: localize(patient.summary, language),
-        flags: patient.flags.map((flag) => localize(flag, language)),
-        history: patient.history.map((item) => ({
-          ...item,
-          date: localize(item.date, language),
-          title: localize(item.title, language),
-          detail: localize(item.detail, language),
-        })),
-      })),
-      laboratories: sourceData.laboratories.map((laboratory) => ({
-        ...laboratory,
-        name: localize(laboratory.name, language),
-      })),
-    };
-  }, [language, sourceData]);
-
-  if (isLoading) return <LoadingScreen label={stateCopy.loading} />;
-  if (error || !localizedData) {
-    return (
-      <ErrorState
-        title={stateCopy.errorTitle}
-        description={getApiErrorMessage(error, language, stateCopy.errorBody)}
-        actionLabel={stateCopy.retry}
-        onRetry={reload}
-      />
-    );
+  async function prescribe(event) {
+    event.preventDefault();
+    if (!selected) return;
+    setSaving(true); setSaveError(''); setMessage('');
+    try {
+      await doctorService.createPrescription({ patientId: selected.id, ...form });
+      setForm(emptyPrescription);
+      await reload();
+      setMessage('Prescription saved. It is available in the patient’s history.');
+    } catch (failure) { setSaveError(failure.message || 'Could not save prescription.'); }
+    finally { setSaving(false); }
   }
 
-  const selectedPatient = localizedData.patients.find(
-    (patient) => patient.id === selectedPatientId,
-  );
-  const isVerified = localizedData.verificationStatus === 'VERIFIED';
-
-  return (
-    <DoctorLayout
-      copy={copy}
-      doctor={localizedData.doctor}
-      onToggleLanguage={toggleLanguage}
-    >
-      <main
-        id="doctor-overview"
-        className="mx-auto max-w-[100rem] scroll-mt-24 px-4 pb-28 pt-6 sm:px-7 sm:pt-8 lg:px-10 lg:pb-12"
-      >
-        {!isVerified ? (
-          <Card className="p-6 sm:p-8">
-            <Badge variant="neutral">{localizedData.verificationStatus}</Badge>
-            <h1 className="mt-4 text-2xl font-bold text-ink-950">Doctor verification required</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-500">
-              Your clinical profile is available, but patient records and prescription tools remain
-              locked until an administrator verifies your medical license.
-            </p>
+  return <main className="min-h-screen bg-canvas p-4 sm:p-8">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <header className="flex items-center justify-between gap-4">
+        <div><h1 className="text-3xl font-bold">Doctor workspace</h1>
+          <p>{data.doctor.full_name} · {data.doctor.specialization}</p></div>
+        <LogoutButton />
+      </header>
+      {data.doctor.verification_status !== 'VERIFIED' ? <Card className="p-6">
+        <h2 className="text-xl font-bold">Verification required</h2>
+        <p className="mt-2">Patient records and prescription tools become available after your medical license is verified.</p>
+      </Card> : <>
+        <Card className="p-6" id="authorized-patients">
+          <h2 className="text-xl font-bold">Patients who granted access</h2>
+          <Button className="mt-3" variant="outline" onClick={reload}>Refresh connections</Button>
+          {data.patients.length === 0 ? <p className="mt-4">No patients have granted you active access.</p> : <>
+            <label className="mt-4 block font-semibold" htmlFor="doctor-patient">Select patient</label>
+            <select id="doctor-patient" className="mt-2 w-full rounded-xl border p-3"
+              value={selected?.id || ''} onChange={event => setPatientId(event.target.value)}>
+              {data.patients.map(patient => <option key={patient.id} value={patient.id}>{patient.full_name}</option>)}
+            </select>
+          </>}
+        </Card>
+        {selected && <>
+          <Card className="p-6" id="patient-records"><h2 className="text-xl font-bold">Medical records · {selected.full_name}</h2>
+            {selected.records.length === 0 ? <p className="mt-3">No medical records yet.</p> :
+              <ul className="mt-3 divide-y">{selected.records.map(record => <li key={record.id} className="py-3">
+                <strong>{record.diagnosis || 'Medical record'}</strong>
+                <p>{record.notes || 'No notes.'}</p>
+                {record.date && <time className="text-sm text-ink-500" dateTime={record.date}>{new Date(record.date).toLocaleDateString()}</time>}
+              </li>)}</ul>}
           </Card>
-        ) : (
-          <>
-        <DoctorOverview
-          appointments={localizedData.appointments}
-          copy={copy}
-          doctor={localizedData.doctor}
-          stats={localizedData.stats}
-        />
-
-        <AccessRedemptionCard language={language} onRedeemed={reload} />
-
-        <div className="mt-7">
-          <PatientManagement
-            copy={copy}
-            patients={localizedData.patients}
-            selectedPatientId={selectedPatientId}
-            onSelectPatient={setSelectedPatientId}
-          />
-        </div>
-
-        <LabOrderForm
-          copy={copy}
-          laboratories={localizedData.laboratories}
-          patient={selectedPatient}
-          onOrdered={reload}
-        />
-
-        <div className="mt-7 grid items-start gap-7 2xl:grid-cols-[minmax(0,1.45fr)_minmax(21rem,0.55fr)]">
-          <ConsultationWorkspace
-            appointments={localizedData.appointments}
-            copy={copy}
-            patient={selectedPatient}
-            onSaved={reload}
-          />
-        </div>
-          </>
-        )}
-      </main>
-    </DoctorLayout>
-  );
+          <Card className="p-6" id="patient-prescriptions"><h2 className="text-xl font-bold">Prescriptions</h2>
+            {selected.prescriptions.length === 0 ? <p className="mt-3">No prescriptions yet.</p> :
+              <ul className="mt-3 divide-y">{selected.prescriptions.map(item => <li key={item.id} className="py-3">
+                <strong>{item.medicine}</strong> · {item.dosage}
+                {item.instructions && <p>{item.instructions}</p>}
+              </li>)}</ul>}
+          </Card>
+          <Card className="p-6" id="create-prescription"><h2 className="text-xl font-bold">Create prescription</h2>
+            {message && <p className="mt-3 text-health-700" role="status">{message}</p>}
+            {saveError && <p className="mt-3 text-red-700" role="alert">{saveError}</p>}
+            <form className="mt-4 grid gap-4" onSubmit={prescribe}>
+              {['medicine', 'dosage', 'duration', 'instructions'].map(field => <Input key={field}
+                required={field !== 'duration'} label={field[0].toUpperCase() + field.slice(1)}
+                value={form[field]} onChange={event => setForm(current => ({ ...current, [field]: event.target.value }))} />)}
+              <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save prescription'}</Button>
+            </form>
+          </Card>
+        </>}
+      </>}
+    </div>
+  </main>;
 }

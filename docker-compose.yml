@@ -4,6 +4,8 @@ services:
       context: ./apps/frontend
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     depends_on:
       - backend
 
@@ -22,8 +24,6 @@ services:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
-    volumes:
-      - backend-uploads:/workspace/apps/backend/uploads/reports
     depends_on:
       database:
         condition: service_healthy
@@ -52,5 +52,4 @@ services:
       start_period: 10s
 
 volumes:
-  backend-uploads:
   postgres-data:

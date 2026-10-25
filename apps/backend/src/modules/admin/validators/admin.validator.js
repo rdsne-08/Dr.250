@@ -5,7 +5,7 @@ export function validateVerification(request, _response, next) {
     const body = requireJsonObject(request.body);
     request.validatedParams = { id: uuidField(request.params, 'id') };
     request.validatedBody = {
-      entityType: enumField(body, 'entity_type', ['DOCTOR', 'LAB']),
+      entityType: enumField(body, 'entity_type', ['DOCTOR']),
       status: enumField(body, 'status', ['VERIFIED', 'REJECTED', 'SUSPENDED']),
     };
     next();

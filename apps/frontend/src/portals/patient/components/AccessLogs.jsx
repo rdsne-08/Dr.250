@@ -2,9 +2,16 @@ import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { Button, Card } from '../../../components/ui/index.js';
 import { patientService } from '../../../services/patientService.js';
 
-export function AccessLogs({ copy, language = 'en' }) {
+const labels = {
+  title: 'Who accessed my records',
+  description: 'Recent authorized provider access to your records.',
+  refresh: 'Refresh access history', loading: 'Loading access history…',
+  error: 'Could not load access history.', empty: 'No provider access recorded.',
+  unknownProvider: 'Unknown provider', resource: 'Resource',
+};
+
+export function AccessLogs() {
   const { data: logs, error, isLoading, reload } = useAsyncResource(patientService.getAccessLogs);
-  const labels = copy.accessLogs;
   return <Card id="access-logs" className="mt-6 scroll-mt-24 p-5" aria-labelledby="access-logs-title">
     <h2 id="access-logs-title" className="text-xl font-bold">{labels.title}</h2>
     <p className="mt-2 text-sm text-ink-500">{labels.description}</p>
@@ -16,7 +23,7 @@ export function AccessLogs({ copy, language = 'en' }) {
       {logs.map((log) => {
         const date = log.created_at && new Date(log.created_at);
         const timestamp = date && !Number.isNaN(date.getTime())
-          ? new Intl.DateTimeFormat(language === 'bn' ? 'bn-BD' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+          ? new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
           : null;
         return <li key={log.id} className="py-3">
           <p className="font-semibold">{log.provider_name || labels.unknownProvider}{log.role ? ` (${log.role})` : ''}</p>

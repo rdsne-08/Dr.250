@@ -116,22 +116,3 @@ test('patient registration rolls back all database rows when patient creation fa
   assert.equal(fake.wasReleased(), true);
 });
 
-test('laboratory registration creates user, profile, and laboratory in one transaction', async () => {
-  const fake = createDatabase();
-  const profile = await createProfile({
-    userId: '00000000-0000-4000-8000-000000000003',
-    email: 'lab@example.com',
-    fullName: 'Lab Operator',
-    role: 'LAB',
-    labName: 'Dhaka Diagnostics',
-    licenseNumber: 'DGHS-1234',
-  }, fake.database);
-
-  assert.equal(profile.laboratory_id, '30000000-0000-4000-8000-000000000001');
-  assert.equal(profile.lab_name, 'Dhaka Diagnostics');
-  assert.equal(profile.license_number, 'DGHS-1234');
-  assert.deepEqual(
-    fake.commands.map(({ text }) => text.split(' ').slice(0, 3).join(' ')),
-    ['BEGIN', 'INSERT INTO public.users', 'INSERT INTO public.profiles', 'INSERT INTO public.laboratories', 'COMMIT'],
-  );
-});

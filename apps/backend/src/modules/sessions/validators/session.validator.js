@@ -6,8 +6,8 @@ export function validateCreateSession(request, _response, next) {
     const body = requireJsonObject(request.body);
     const expiresAt = dateField(body, 'expires_at');
 
-    if (new Date(expiresAt) <= new Date() || new Date(expiresAt).getTime() > Date.now() + 15 * 60_000) {
-      throw new HttpError(400, 'expires_at must be within the next 15 minutes.', { code: 'VALIDATION_ERROR' });
+    if (new Date(expiresAt) <= new Date() || new Date(expiresAt).getTime() > Date.now() + 30 * 24 * 60 * 60_000) {
+      throw new HttpError(400, 'expires_at must be within the next 30 days.', { code: 'VALIDATION_ERROR' });
     }
 
     request.validatedBody = {
