@@ -76,3 +76,6 @@ application database.
 - `database/migrations`: forward-only schema history. Earlier lab and access
   session columns remain for compatibility with existing data; the application
   does not expose laboratory or QR/PIN workflows.
+- `database/retired-migrations`: preserved historical SQL that is excluded from
+  fresh migrations. The old embedding migration stays archived so its history
+  is available without activating the removed AI workflow.
