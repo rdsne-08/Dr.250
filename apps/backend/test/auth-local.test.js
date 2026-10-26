@@ -37,7 +37,7 @@ test('registration normalizes email and reports duplicate identity without repla
     persistProfile: async () => { throw Object.assign(new Error('license conflict'), {
       code: '23505', constraint: 'doctors_license_number_key',
     }); },
-  }), error => error.statusCode === 409 && /provider details/.test(error.message));
+  }), error => error.statusCode === 409 && error.code === 'LICENSE_ALREADY_REGISTERED');
 });
 
 test('registration persists a patient; login, duplicates, wrong password, session and logout work', {
@@ -104,14 +104,32 @@ test('registration persists a patient; login, duplicates, wrong password, sessio
     const revoked = await fetch(base + '/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
     assert.equal(revoked.status, 401);
     for (const [role, extra] of [
-      ['DOCTOR', { specialization: 'General', license_number: 'TEST-BMDC' }],
+      ['DOCTOR', { specialization: 'General', license_number: '12345678' }],
     ]) {
+      const doctorEmail = `${role.toLowerCase()}.${email}`;
+      for (const invalidLicense of ['123', 'BMDC-12345', '12345 678']) {
+        const invalid = await post('/api/auth/register', {
+          ...registration, email: doctorEmail, role, ...extra, license_number: invalidLicense,
+        });
+        assert.equal(invalid.status, 400);
+        assert.equal(invalid.body.error, 'INVALID_LICENSE_NUMBER');
+        assert.equal((await query('SELECT count(*)::int AS count FROM public.users WHERE email=$1',
+          [doctorEmail])).rows[0].count, 0);
+      }
       const provider = await post('/api/auth/register', {
-        ...registration, email: `${role.toLowerCase()}.${email}`, role, ...extra,
+        ...registration, email: doctorEmail, role, ...extra,
       });
       assert.equal(provider.status, 201);
       assert.equal(provider.body.data.user.verification_status, 'PENDING');
       userIds.push(provider.body.data.user.user_id);
+      assert.equal((await post('/api/auth/login', { email: doctorEmail, password })).status, 200);
+      const duplicateLicense = await post('/api/auth/register', {
+        ...registration, email: `another.${doctorEmail}`, role, ...extra,
+      });
+      assert.equal(duplicateLicense.status, 409);
+      assert.equal(duplicateLicense.body.error, 'LICENSE_ALREADY_REGISTERED');
+      assert.equal((await query('SELECT count(*)::int AS count FROM public.users WHERE email=$1',
+        [`another.${doctorEmail}`])).rows[0].count, 0);
     }
     const admin = await post('/api/auth/register', { ...registration, role: 'ADMIN' });
     assert.equal(admin.status, 400);

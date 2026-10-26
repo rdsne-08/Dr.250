@@ -40,8 +40,10 @@ export async function registerUser({
   } catch (error) {
     if (error?.code === '23505') {
       const constraint = error?.cause?.constraint ?? error?.constraint;
-      if (constraint && !constraint.startsWith('users_email_')) {
-        throw new HttpError(409, 'An account with these provider details already exists.');
+      if (constraint === 'doctors_license_number_key') {
+        throw new HttpError(409, 'This medical license number is already registered.', {
+          code: 'LICENSE_ALREADY_REGISTERED',
+        });
       }
       throw new HttpError(409, 'An account with this email already exists.');
     }

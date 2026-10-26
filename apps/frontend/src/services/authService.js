@@ -62,9 +62,11 @@ function normalizeAuthError(error) {
   let code = 'AUTH_ERROR';
   if (error.code === 'NETWORK_ERROR') code = 'NETWORK_ERROR';
   else if (error.status === 401) code = 'INVALID_CREDENTIALS';
-  else if (error.status === 409) code = 'ACCOUNT_EXISTS';
+  else if (error.status === 409) code = error.code === 'LICENSE_ALREADY_REGISTERED'
+    ? 'LICENSE_ALREADY_REGISTERED' : 'ACCOUNT_EXISTS';
   else if (error.status === 502 || error.status === 503) code = 'AUTH_UNAVAILABLE';
-  else if (error.status === 400) code = 'REGISTRATION_REJECTED';
+  else if (error.status === 400) code = error.code === 'INVALID_LICENSE_NUMBER'
+    ? 'INVALID_LICENSE_NUMBER' : 'REGISTRATION_REJECTED';
   return new AuthServiceError(error.message, code);
 }
 
@@ -126,31 +128,35 @@ async function register(details) {
   if (details.role === AUTH_ROLES.DOCTOR && !details.licenseNumber?.trim()) {
     throw new AuthServiceError('Please enter your license number.', 'INVALID_LICENSE_NUMBER');
   }
+  if (details.role === AUTH_ROLES.DOCTOR && !/^[0-9]{5,12}$/.test(details.licenseNumber.trim())) {
+    throw new AuthServiceError('Medical license number must contain 5 to 12 digits.', 'INVALID_LICENSE_NUMBER');
+  }
 
+  const registration = {
+    email: details.email.trim(),
+    full_name: details.name.trim(),
+    password: details.password,
+    role: details.role,
+  };
+  if (details.role === AUTH_ROLES.DOCTOR) {
+    registration.specialization = details.specialization.trim();
+    registration.license_number = details.licenseNumber.trim();
+  }
   try {
-    const registration = {
-      email: details.email.trim(),
-      full_name: details.name.trim(),
-      password: details.password,
-      role: details.role,
-    };
-
-    if (details.role === AUTH_ROLES.DOCTOR) {
-      registration.specialization = details.specialization.trim();
-      registration.license_number = details.licenseNumber.trim();
-    }
-
-
     await apiClient.post(AUTH_API_CONTRACT.register, registration, { auth: false });
-
-    return login({
+  } catch (error) {
+    throw normalizeAuthError(error);
+  }
+  try {
+    return await login({
       email: details.email,
       password: details.password,
       remember: details.remember ?? true,
       role: details.role,
     });
-  } catch (error) {
-    throw normalizeAuthError(error);
+  } catch {
+    throw new AuthServiceError('Account created. Please sign in with your new credentials.',
+      'ACCOUNT_CREATED_SIGN_IN_REQUIRED');
   }
 }
 

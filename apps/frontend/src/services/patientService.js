@@ -21,6 +21,9 @@ async function getDashboard() {
 
 export const patientService = Object.freeze({
   getDashboard,
+  createRecord: async ({ patientId, diagnosis, notes }) => (await apiClient.post('/api/medical-records', {
+    patient_id: patientId, diagnosis, notes,
+  })).record,
   createDoctorAccess: async doctorId => (await apiClient.post(endpoints.sessions, {
     doctor_id: doctorId,
     expires_at: new Date(Date.now() + 30 * 24 * 60 * 60_000).toISOString(),
