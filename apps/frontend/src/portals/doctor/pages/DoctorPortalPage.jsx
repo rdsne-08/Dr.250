@@ -8,12 +8,14 @@ import { useAsyncResource } from '../../../hooks/useAsyncResource.js';
 import { useLanguage } from '../../../hooks/useLanguage.js';
 import { doctorService } from '../../../services/doctorService.js';
 import { DoctorLayout } from '../components/DoctorLayout.jsx';
+import { ProfessionalProfile } from '../components/ProfessionalProfile.jsx';
+import { TodayAvailability } from '../components/TodayAvailability.jsx';
 
 const emptyPrescription = { medicine: '', dosage: '', duration: '', instructions: '' };
 const copies = {
   en: { languageName: 'বাংলা', navigationLabel: 'Doctor sections',
     nav: { overview: 'Overview', patients: 'Authorized patients', records: 'Patient records',
-      prescriptions: 'Write prescription', profile: 'Profile', more: 'More' },
+      prescriptions: 'Write prescription', profile: 'Professional Profile', availability: 'Today’s Availability', more: 'More' },
     navShort: { overview: 'Home', patients: 'Patients', records: 'Records', profile: 'Profile' },
     sidebar: { portal: 'Doctor portal', doctorId: 'Doctor ID',
       privacyTitle: 'Access follows consent',
@@ -22,7 +24,7 @@ const copies = {
       chooseSection: 'Choose a section to open.' } },
   bn: { languageName: 'English', navigationLabel: 'ডাক্তারের বিভাগ',
     nav: { overview: 'ড্যাশবোর্ড', patients: 'অনুমতিপ্রাপ্ত রোগী', records: 'রোগীর নথি',
-      prescriptions: 'প্রেসক্রিপশন লিখুন', profile: 'প্রোফাইল', more: 'আরও' },
+      prescriptions: 'প্রেসক্রিপশন লিখুন', profile: 'পেশাগত প্রোফাইল', availability: 'আজকের সময়সূচি', more: 'আরও' },
     navShort: { overview: 'হোম', patients: 'রোগী', records: 'নথি', profile: 'প্রোফাইল' },
     sidebar: { portal: 'ডাক্তারের পোর্টাল', doctorId: 'ডাক্তার আইডি',
       privacyTitle: 'অনুমতির ভিত্তিতে প্রবেশ',
@@ -67,7 +69,7 @@ export function DoctorPortalPage() {
 
   return <DoctorLayout copy={copy} doctor={doctor} onToggleLanguage={toggleLanguage}>
     <main id="doctor-overview" className="mx-auto max-w-[100rem] scroll-mt-24 space-y-8 px-4 pb-28 pt-6 sm:px-7 sm:pt-8 lg:px-10 lg:pb-12">
-      <section id="doctor-profile" className="relative overflow-hidden rounded-3xl bg-ink-950 p-6 text-white shadow-lift sm:p-9">
+      <section id="clinical-workspace" className="relative overflow-hidden rounded-3xl bg-ink-950 p-6 text-white shadow-lift sm:p-9">
         <div className="absolute -right-20 -top-24 size-80 rounded-full bg-health-500/20 blur-3xl" aria-hidden="true" />
         <div className="relative flex flex-wrap items-center justify-between gap-6">
           <div>
@@ -159,6 +161,10 @@ export function DoctorPortalPage() {
           </div>}
         </div>
       </>}
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <ProfessionalProfile doctor={data.doctor} onSaved={reload} />
+        <TodayAvailability key={`${data.doctor.id}:${data.doctor.updated_at}`} doctor={data.doctor} />
+      </div>
     </main>
   </DoctorLayout>;
 }
