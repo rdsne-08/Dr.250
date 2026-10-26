@@ -171,4 +171,5 @@ export const apiClient = Object.freeze({
   get: (path, options) => apiRequest(path, { ...options, method: 'GET' }),
   patch: (path, body, options) => apiRequest(path, { ...options, body, method: 'PATCH' }),
   post: (path, body, options) => apiRequest(path, { ...options, body, method: 'POST' }),
+  put: (path, body, options) => apiRequest(path, { ...options, body, method: 'PUT' }),
 });

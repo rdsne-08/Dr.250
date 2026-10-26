@@ -41,4 +41,8 @@ export const doctorService = Object.freeze({
   getDashboard,
   getPatients: async () => (await apiClient.get(endpoints.patients)).patients ?? [],
   getProfile: async () => (await apiClient.get(endpoints.profile)).doctor,
+  getProfileOptions: async () => apiClient.get('/api/doctors/profile-options'),
+  updateProfile: async details => (await apiClient.put(endpoints.profile, details)).doctor,
+  getTodayAvailability: async () => (await apiClient.get('/api/doctors/availability/today')).availability,
+  saveTodayAvailability: async details => (await apiClient.put('/api/doctors/availability/today', details)).availability,
 });

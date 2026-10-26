@@ -2,6 +2,7 @@ import {
   ClipboardPlus,
   Languages,
   LayoutDashboard,
+  CalendarDays,
   Menu,
   ShieldCheck,
   UserRound,
@@ -19,7 +20,8 @@ const navigation = [
   { id: 'patients', href: '#authorized-patients', icon: UsersRound },
   { id: 'records', href: '#patient-records', icon: UsersRound },
   { id: 'prescriptions', href: '#create-prescription', icon: ClipboardPlus },
-  { id: 'profile', href: '#doctor-profile', icon: UserRound },
+  { id: 'profile', href: '#professional-profile', icon: UserRound },
+  { id: 'availability', href: '#today-availability', icon: CalendarDays },
 ];
 
 function NavigationItems({ compact = false, copy, onNavigate }) {
