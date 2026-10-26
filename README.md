@@ -1,12 +1,13 @@
 # Dr.250
 
-Dr.250 is a small Patient–Doctor application. Patients keep a personal medical history, choose verified doctors, grant or revoke time-limited access, and view prescriptions and access history. Verified doctors can read only the records of patients who granted them active access and can write prescriptions to those patients' profiles.
+Dr.250 is a small Patient–Doctor application with an Admin doctor-review workspace. Patients keep a personal medical history, choose verified doctors, grant or revoke time-limited access, and view prescriptions and access history. Verified doctors can read only the records of patients who granted them active access and can write prescriptions to those patients' profiles.
 
 ## Features and screenshots
 
 - Patients add medical records, view prescriptions and access history, and grant or revoke verified doctors.
 - Verified doctors see only patients with active grants and can create prescriptions for them.
 - Local accounts use database-backed passwords. Existing Supabase authentication remains supported. Doctor verification and provider record access are audited.
+- Admins can review pending doctor applications at `/admin`, approve or reject them, and inspect reviewed decisions. Admin accounts cannot self-register.
 
 The screenshots below show the running application with fictional accounts and medical details in a disposable database.
 
@@ -52,6 +53,23 @@ npm run dev
 Open `http://localhost:5173`. Alternatively, from the repository root run `docker compose up --build` after configuring `.env`. Compose starts PostgreSQL and runs backend migrations. Existing database data and historical migrations are retained; do not recreate a populated database to upgrade it.
 
 ## Demonstration
+
+### Phase 1 Admin doctor review
+
+An existing trusted `ADMIN` account with local credentials or legacy authentication signs in at `/login` by choosing **Admin**. The dashboard at `/admin` lists pending and reviewed doctors. An operator must check the doctor's identity and license outside Dr.250 before clicking **Approve** or **Reject** and confirming. Each decision is accepted only while the application is `PENDING`; the status change and audit event commit together. Existing doctor sessions immediately follow the new status. Public registration remains limited to patients and doctors.
+
+For a local demonstration only, provision an Admin account in a **disposable** migrated loopback database named `dr250_release_*`. The helper refuses production and any other database name. In PowerShell, use your disposable database URL and choose a private password; do not save it in a repository file:
+
+```powershell
+$env:DATABASE_URL = 'postgresql://USER:PASSWORD@127.0.0.1:PORT/dr250_release_demo'
+$env:DR250_DISPOSABLE_URL = $env:DATABASE_URL
+$env:DR250_DEMO_ADMIN_PASSWORD = Read-Host 'Demo Admin password (12+ characters)' -AsSecureString | ForEach-Object { [System.Net.NetworkCredential]::new('', $_).Password }
+Set-Location .\apps\backend
+node .\scripts\provision-demo-admin.js 'admin@example.invalid' 'Demo Admin'
+Remove-Item Env:DR250_DEMO_ADMIN_PASSWORD
+```
+
+Then register a doctor, sign in as Admin, open **Pending Review**, inspect the application, and confirm approval or rejection. Refresh **Reviewed** to see the persisted decision. A pending or rejected doctor sees their status in the Doctor portal and cannot use patient-care endpoints. A verified doctor still needs a patient grant. Appointment and consultation features are outside Phase 1.
 
 1. Register a patient and a doctor with real test identities. Doctor registration starts at `PENDING` and does not grant record access.
 2. An operator checks the doctor's identity and medical license outside the application. With database access and an existing internal `ADMIN` identity, run the local verification command from `apps/backend`:

@@ -1,4 +1,4 @@
-import { HeartPulse, Stethoscope } from 'lucide-react';
+import { HeartPulse, ShieldCheck, Stethoscope } from 'lucide-react';
 
 import { cn } from '../../lib/classNames.js';
 import { AUTH_ROLES } from '../../services/authService.js';
@@ -6,14 +6,16 @@ import { AUTH_ROLES } from '../../services/authService.js';
 const roleIcons = {
   [AUTH_ROLES.PATIENT]: HeartPulse,
   [AUTH_ROLES.DOCTOR]: Stethoscope,
+  [AUTH_ROLES.ADMIN]: ShieldCheck,
 };
 
-export function RoleSelector({ copy, label, name = 'role', onChange, value }) {
+export function RoleSelector({ copy, label, name = 'role', onChange, value,
+  roles = [AUTH_ROLES.PATIENT, AUTH_ROLES.DOCTOR] }) {
   return (
     <fieldset>
       <legend className="text-sm font-semibold text-ink-800">{label}</legend>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        {Object.values(AUTH_ROLES).map((role) => {
+      <div className={`mt-2 grid gap-2 ${roles.length > 2 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+        {roles.map((role) => {
           const Icon = roleIcons[role];
           const selected = value === role;
 

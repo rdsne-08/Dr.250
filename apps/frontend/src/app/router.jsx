@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import { ProtectedRoute } from '../components/auth/ProtectedRoute.jsx';
 import { DoctorPortalPage } from '../portals/doctor/pages/DoctorPortalPage.jsx';
+import { AdminPortalPage } from '../portals/admin/pages/AdminPortalPage.jsx';
 import { PatientDashboard } from '../portals/patient/index.js';
 import { LandingPage } from './pages/LandingPage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
@@ -20,6 +21,10 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute allowedRole={AUTH_ROLES.DOCTOR} />,
     children: [{ path: '/doctor', element: <DoctorPortalPage /> }],
+  },
+  {
+    element: <ProtectedRoute allowedRole={AUTH_ROLES.ADMIN} />,
+    children: [{ path: '/admin', element: <AdminPortalPage /> }],
   },
   { path: '*', element: <NotFoundPage /> },
 ]);

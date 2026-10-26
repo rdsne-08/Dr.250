@@ -9,11 +9,13 @@ import {
 export const AUTH_ROLES = Object.freeze({
   PATIENT: 'PATIENT',
   DOCTOR: 'DOCTOR',
+  ADMIN: 'ADMIN',
 });
 
 export const ROLE_HOME = Object.freeze({
   [AUTH_ROLES.PATIENT]: '/patient',
   [AUTH_ROLES.DOCTOR]: '/doctor',
+  [AUTH_ROLES.ADMIN]: '/admin',
 });
 
 export const AUTH_API_CONTRACT = Object.freeze({

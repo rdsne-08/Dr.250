@@ -81,6 +81,7 @@ export function LoginPage() {
         <RoleSelector
           copy={copy.roles}
           label={copy.shared.role}
+          roles={[AUTH_ROLES.PATIENT, AUTH_ROLES.DOCTOR, AUTH_ROLES.ADMIN]}
           value={form.role}
           onChange={(role) => updateField('role', role)}
         />

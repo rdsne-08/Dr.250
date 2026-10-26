@@ -33,6 +33,8 @@ const protectedRoutes = [
   ['GET', '/api/prescriptions/00000000-0000-4000-8000-000000000001'],
   ['GET', '/api/sessions'],
   ['GET', '/api/sessions/doctors'],
+  ['GET', '/api/admin/doctors'],
+  ['PATCH', '/api/admin/doctors/00000000-0000-4000-8000-000000000001/verification'],
   ['POST', '/api/doctors/prescriptions'],
   ['POST', '/api/medical-records'],
   ['POST', '/api/prescriptions'],
@@ -53,8 +55,3 @@ for (const [method, path] of protectedRoutes) {
     });
   });
 }
-
-test('retired admin API is not mounted', async () => {
-  const response = await fetch(`${baseUrl}/api/admin/doctors`);
-  assert.equal(response.status, 404);
-});
