@@ -28,6 +28,30 @@ const {
 const { authService } = await import('../src/services/authService.js');
 const { doctorService } = await import('../src/services/doctorService.js');
 const { patientService } = await import('../src/services/patientService.js');
+const { adminService } = await import('../src/services/adminService.js');
+
+test('Admin sign-in uses the existing auth session and review calls require its token', async () => {
+  const paths = [];
+  globalThis.fetch = async (url, options) => {
+    const path = new URL(url).pathname;
+    paths.push(path);
+    if (path === '/api/auth/login') return Response.json({ success: true, data: {
+      access_token: 'admin-token', expires_in: 3600,
+      user: { user_id: 'admin-user', full_name: 'Review Admin', role: 'ADMIN' }, role: 'ADMIN',
+    } });
+    assert.equal(options.headers.get('Authorization'), 'Bearer admin-token');
+    if (path === '/api/admin/doctors') return Response.json({ success: true, data: { doctors: [{ id: 'doctor-1' }] } });
+    assert.equal(options.method, 'PATCH');
+    assert.deepEqual(JSON.parse(options.body), { status: 'VERIFIED' });
+    return Response.json({ success: true, data: { doctor: { id: 'doctor-1', verification_status: 'VERIFIED' } } });
+  };
+  assert.equal((await authService.login({ email: 'admin@example.invalid', password: 'password123',
+    role: 'ADMIN', remember: true })).user.role, 'ADMIN');
+  assert.equal((await adminService.getDoctors())[0].id, 'doctor-1');
+  assert.equal((await adminService.decide('doctor-1', 'VERIFIED')).verification_status, 'VERIFIED');
+  assert.deepEqual(paths, ['/api/auth/login', '/api/admin/doctors',
+    '/api/admin/doctors/doctor-1/verification']);
+});
 
 afterEach(() => {
   clearApiSession();

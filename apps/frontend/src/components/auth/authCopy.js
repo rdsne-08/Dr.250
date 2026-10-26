@@ -17,6 +17,7 @@ export const authCopy = {
     roles: {
       PATIENT: { title: 'Patient', description: 'Manage your personal health space' },
       DOCTOR: { title: 'Doctor', description: 'Access authorized clinical workflows' },
+      ADMIN: { title: 'Admin', description: 'Review doctor applications' },
     },
     login: {
       eyebrow: 'Welcome back',
@@ -105,6 +106,7 @@ export const authCopy = {
     roles: {
       PATIENT: { title: 'রোগী', description: 'ব্যক্তিগত হেলথ স্পেস পরিচালনা করুন' },
       DOCTOR: { title: 'ডাক্তার', description: 'অনুমোদিত ক্লিনিক্যাল কাজে প্রবেশ করুন' },
+      ADMIN: { title: 'অ্যাডমিন', description: 'ডাক্তারের আবেদন পর্যালোচনা করুন' },
     },
     login: {
       eyebrow: 'স্বাগতম',

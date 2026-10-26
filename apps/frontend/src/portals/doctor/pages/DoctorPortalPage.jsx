@@ -83,8 +83,11 @@ export function DoctorPortalPage() {
 
       {data.doctor.verification_status !== 'VERIFIED' ? <Card className="border-health-100 p-6">
         <ShieldCheck className="size-8 text-health-700" aria-hidden="true" />
-        <h2 className="mt-4 text-xl font-bold">Verification required</h2>
-        <p className="mt-2 text-ink-500">Patient records and prescription tools become available after your medical license is verified.</p>
+        <h2 className="mt-4 text-xl font-bold">{data.doctor.verification_status === 'REJECTED'
+          ? 'Application rejected' : 'Verification pending'}</h2>
+        <p className="mt-2 text-ink-500">{data.doctor.verification_status === 'REJECTED'
+          ? 'Your doctor application was not approved. Patient records and prescription tools are unavailable.'
+          : 'Your application is awaiting review. Patient records and prescription tools become available after approval.'}</p>
       </Card> : <>
         <div className="grid gap-4 sm:grid-cols-3">
           {[{ icon: UsersRound, label: 'Authorized patients', value: data.patients.length },

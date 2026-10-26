@@ -3,6 +3,7 @@ import test from 'node:test';
 
 process.env.DATABASE_URL ||= 'postgresql://postgres:postgres@localhost:5432/dr250_test';
 const { verifyDemoDoctor } = await import('../scripts/verify-demo-doctor.js');
+const { verifyEntity } = await import('../src/modules/admin/services/admin.service.js');
 const { authorizePatientDataAccess } = await import('../src/modules/sessions/services/access.service.js');
 const { createDoctorPrescription } = await import('../src/modules/prescriptions/services/prescription.service.js');
 const { getMedicalRecords } = await import('../src/modules/medical-records/services/medical-record.service.js');
@@ -52,6 +53,21 @@ test('setup command refuses missing admin identity and unmatched doctor license'
     assert.equal(statements.includes('COMMIT'), false);
     assert.equal(statements.at(-1), 'ROLLBACK');
     assert.equal(statements.some(sql => sql.includes('INSERT INTO public.audit_logs')), false);
+  }
+});
+
+test('Admin decisions distinguish missing and stale applications without writing an audit event', async () => {
+  for (const exists of [false, true]) {
+    const statements = [];
+    const database = { connect: async () => ({ release() {}, async query(sql) {
+      statements.push(sql);
+      if (sql.includes('SELECT id FROM public.doctors')) return { rows: exists ? [{ id: 'doctor-1' }] : [] };
+      return { rows: [] };
+    } }) };
+    await assert.rejects(verifyEntity({ id: 'doctor-1', entityType: 'DOCTOR', status: 'VERIFIED',
+      adminUserId: 'admin-1' }, database), error => error.statusCode === (exists ? 409 : 404));
+    assert.equal(statements.some(sql => sql.includes('INSERT INTO public.audit_logs')), false);
+    assert.equal(statements.at(-1), 'ROLLBACK');
   }
 });
 
