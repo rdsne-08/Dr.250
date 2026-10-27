@@ -381,6 +381,9 @@ test('doctor dashboard loads only authorized patients and their clinical history
         created_at: '2026-09-21T10:00:00.000Z',
       }],
     },
+    [`/api/doctors/patients/${patientId}/health-profile`]: {
+      health: { profile: { conditions: 'Asthma' }, measurements: [] },
+    },
   };
 
   globalThis.fetch = async (url, options) => {
@@ -400,6 +403,7 @@ test('doctor dashboard loads only authorized patients and their clinical history
   assert.equal(dashboard.patients[0].full_name, 'Authorized Patient');
   assert.equal(dashboard.patients[0].records.length, 1);
   assert.equal(dashboard.patients[0].prescriptions.length, 1);
+  assert.equal(dashboard.patients[0].health.profile.conditions, 'Asthma');
   assert.deepEqual(requestedPaths.sort(), Object.keys(responses).sort());
 });
 

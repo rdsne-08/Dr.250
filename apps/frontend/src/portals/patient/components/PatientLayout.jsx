@@ -18,6 +18,7 @@ import { cn } from '../../../lib/classNames.js';
 const navigation = [
   { id: 'dashboard', href: '#patient-dashboard', icon: House },
   { id: 'records', href: '#medical-records', icon: FileHeart },
+  { id: 'healthProfile', href: '#my-health-profile', icon: FileHeart },
   { id: 'doctors', href: '#doctor-access', icon: Stethoscope },
   { id: 'findDoctor', href: '#find-doctor', icon: Stethoscope },
   { id: 'appointments', href: '#my-appointment', icon: FileHeart },

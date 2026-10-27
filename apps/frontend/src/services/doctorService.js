@@ -15,12 +15,13 @@ async function getDashboard() {
   return {
     doctor,
     patients: await Promise.all(patients.map(async patient => {
-      const [records, prescriptions] = await Promise.all([
+      const [records, prescriptions, health] = await Promise.all([
         apiClient.get(endpoints.medicalRecords(patient.id)),
         apiClient.get(endpoints.patientPrescriptions(patient.id)),
+        apiClient.get(`/api/doctors/patients/${patient.id}/health-profile`),
       ]);
       return { ...patient, records: records.records ?? [],
-        prescriptions: prescriptions.prescriptions ?? [] };
+        prescriptions: prescriptions.prescriptions ?? [], health: health.health };
     })),
   };
 }

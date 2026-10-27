@@ -133,6 +133,12 @@ test('same-day booking enforces identity, country, window, capacity and permanen
       error => error.statusCode === 403);
     const first = await bookAppointment(patients[0].id, doctor.profile.id, today, undefined, ten);
     assert.equal(first.queue_position, 1);
+    assert.equal((await request('PUT', '/api/patients/health-profile', {
+      conditions: 'Asthma', allergies: 'Pollen', current_medications: 'Inhaler',
+      medical_history: 'Childhood symptoms', notes: 'Self-reported',
+    }, patients[0].token)).status, 200);
+    assert.equal((await request('GET', `/api/doctors/patients/${patients[0].profile.id}/health-profile`,
+      null, doctor.token)).status, 403);
     assert.equal((await request('GET', `/api/medical-records/${patients[0].profile.id}`, null, doctor.token)).status, 403);
     assert.equal((await request('POST', '/api/doctors/prescriptions', {
       patient_id: patients[0].profile.id, medicine: 'Test', dosage: 'One', instructions: 'Test',
@@ -192,6 +198,7 @@ test('same-day booking enforces identity, country, window, capacity and permanen
     assert.equal((await request('GET', `/api/doctors/consultations/${third.id}`, null, otherDoctor.token)).status, 403);
     const opened = await activeConsultation({ id: doctor.id, role: 'DOCTOR' }, third.id);
     assert.equal(opened.patient_id, patients[0].profile.id);
+    assert.equal(opened.health.profile.conditions, 'Asthma');
     assert.equal((await request('GET', `/api/medical-records/${patients[0].profile.id}`, null, doctor.token)).status, 200);
     const saved = await request('POST', '/api/doctors/prescriptions', {
       patient_id: patients[0].profile.id, medicine: 'Consultation medicine',
@@ -210,6 +217,8 @@ test('same-day booking enforces identity, country, window, capacity and permanen
       .some(item => item.id === prescriptionId), true);
     assert.equal((await completeConsultation(doctor.id, third.id)).consultation_status, 'COMPLETED');
     assert.equal((await request('GET', `/api/medical-records/${patients[0].profile.id}`, null, doctor.token)).status, 403);
+    assert.equal((await request('GET', `/api/doctors/patients/${patients[0].profile.id}/health-profile`,
+      null, doctor.token)).status, 403);
     assert.equal((await request('POST', '/api/doctors/prescriptions', {
       patient_id: patients[0].profile.id, medicine: 'Blocked', dosage: 'Once', instructions: 'None',
     }, doctor.token)).status, 403);

@@ -32,7 +32,7 @@ test('patient grant allows history reads, while prescribing requires a consultat
     return { status: response.status, data: await response.json() };
   }
   async function account(role, details = {}) {
-    const email = `${role.toLowerCase()}.${suffix}@example.invalid`;
+    const email = details.email ?? `${role.toLowerCase()}.${suffix}@example.invalid`;
     const password = `Workflow-${suffix}!`;
     const registered = await request('POST', '/api/auth/register', {
       email, password, full_name: `${role} Workflow`, role, ...details,
@@ -45,12 +45,47 @@ test('patient grant allows history reads, while prescribing requires a consultat
   }
   try {
     const patientToken = await account('PATIENT');
+    const otherPatientToken = await account('PATIENT', { email: `otherpatient.${suffix}@example.invalid` });
     const doctorToken = await account('DOCTOR', {
       specialization: 'General', license_number: '123456789',
     });
     patientId = (await request('GET', '/api/patients/profile', null, patientToken)).data.data.patient.id;
+    const otherPatientId = (await request('GET', '/api/patients/profile', null, otherPatientToken)).data.data.patient.id;
     doctorId = (await request('GET', '/api/doctors/profile', null, doctorToken)).data.data.doctor.id;
     assert.equal((await request('GET', '/api/doctors/patients', null, doctorToken)).status, 403);
+    const healthDetails = { conditions: 'Asthma', medical_history: 'Childhood hospitalization',
+      allergies: 'Penicillin', current_medications: 'Inhaler', notes: 'Exercise can trigger symptoms' };
+    const firstHealth = await request('PUT', '/api/patients/health-profile', healthDetails, patientToken);
+    assert.equal(firstHealth.status, 200, JSON.stringify(firstHealth.data));
+    assert.equal(firstHealth.data.data.profile.patient_id, patientId);
+    const measurement = { measured_on: new Date().toISOString().slice(0, 10),
+      systolic_mmhg: 120, diastolic_mmhg: 80, pulse_bpm: 72, weight_kg: 65.5 };
+    const added = await request('POST', '/api/patients/health-profile/measurements', measurement, patientToken);
+    assert.equal(added.status, 201, JSON.stringify(added.data));
+    const measurementId = added.data.data.measurement.id;
+    assert.equal((await request('PATCH', `/api/patients/health-profile/measurements/${measurementId}`,
+      { ...measurement, pulse_bpm: 75 }, otherPatientToken)).status, 404);
+    assert.equal((await request('PATCH', `/api/patients/health-profile/measurements/${measurementId}`,
+      { ...measurement, pulse_bpm: 75 }, doctorToken)).status, 403);
+    assert.equal((await request('PATCH', `/api/patients/health-profile/measurements/${measurementId}`,
+      { ...measurement, pulse_bpm: 75 }, patientToken)).status, 200);
+    assert.equal((await request('POST', '/api/patients/health-profile/measurements',
+      { ...measurement, measured_on: '2025-02-30' }, patientToken)).status, 400);
+    assert.equal((await request('POST', '/api/patients/health-profile/measurements',
+      { ...measurement, systolic_mmhg: null }, patientToken)).status, 400);
+    assert.equal((await request('PUT', '/api/patients/health-profile',
+      { ...healthDetails, patient_id: otherPatientId }, patientToken)).status, 400);
+    assert.equal((await request('GET', '/api/patients/health-profile', null, otherPatientToken))
+      .data.data.health.profile, null);
+    const revised = await request('PUT', '/api/patients/health-profile',
+      { ...healthDetails, allergies: 'Penicillin and pollen' }, patientToken);
+    assert.equal(revised.status, 200);
+    const refreshedToken = (await request('POST', '/api/auth/login', {
+      email: `patient.${suffix}@example.invalid`, password: `Workflow-${suffix}!`,
+    })).data.data.access_token;
+    const persisted = (await request('GET', '/api/patients/health-profile', null, refreshedToken)).data.data.health;
+    assert.equal(persisted.profile.allergies, 'Penicillin and pollen');
+    assert.equal(persisted.measurements[0].pulse_bpm, 75);
 
     const record = await request('POST', '/api/medical-records', {
       patient_id: patientId, diagnosis: 'Workflow diagnosis', notes: 'Demo history',
@@ -67,6 +102,7 @@ test('patient grant allows history reads, while prescribing requires a consultat
 
     const beforeGrant = await request('GET', `/api/medical-records/${patientId}`, null, doctorToken);
     assert.equal(beforeGrant.status, 403);
+    assert.equal((await request('GET', `/api/doctors/patients/${patientId}/health-profile`, null, doctorToken)).status, 403);
     const grant = await request('POST', '/api/sessions', {
       doctor_id: doctorId, expires_at: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
     }, patientToken);
@@ -75,6 +111,10 @@ test('patient grant allows history reads, while prescribing requires a consultat
     const authorized = await request('GET', `/api/medical-records/${patientId}`, null, doctorToken);
     assert.equal(authorized.status, 200, JSON.stringify(authorized.data));
     assert.equal(authorized.data.data.records[0].diagnosis, 'Workflow diagnosis');
+    const doctorHealth = await request('GET', `/api/doctors/patients/${patientId}/health-profile`, null, doctorToken);
+    assert.equal(doctorHealth.status, 200, JSON.stringify(doctorHealth.data));
+    assert.equal(doctorHealth.data.data.health.profile.conditions, 'Asthma');
+    assert.equal((await request('GET', `/api/doctors/patients/${otherPatientId}/health-profile`, null, doctorToken)).status, 403);
     const withoutConsultation = await request('POST', '/api/doctors/prescriptions', {
       patient_id: patientId, medicine: 'Example medicine', dosage: 'Once daily',
       instructions: 'After food',
@@ -86,9 +126,15 @@ test('patient grant allows history reads, while prescribing requires a consultat
     const logs = await request('GET', '/api/patients/access-logs', null, patientToken);
     assert.equal(logs.status, 200);
     assert.ok(logs.data.data.logs.some(item => item.action === 'RECORDS_READ'));
+    assert.ok(logs.data.data.logs.some(item => item.action === 'HEALTH_PROFILE_READ'));
 
     assert.equal((await request('PATCH', `/api/sessions/${connectionId}/revoke`, {}, patientToken)).status, 200);
     assert.equal((await request('GET', `/api/medical-records/${patientId}`, null, doctorToken)).status, 403);
+    assert.equal((await request('GET', `/api/doctors/patients/${patientId}/health-profile`, null, doctorToken)).status, 403);
+    assert.equal((await request('GET', '/api/patients/records', null, patientToken)).data.data.records[0].title,
+      'Workflow diagnosis');
+    assert.equal((await request('GET', '/api/patients/prescriptions', null, patientToken))
+      .data.data.prescriptions.length, 0);
     assert.equal((await request('POST', '/api/doctors/prescriptions', {
       patient_id: patientId, medicine: 'Blocked', dosage: 'Once daily', instructions: 'None',
     }, doctorToken)).status, 403);

@@ -4,6 +4,7 @@ import { HttpError } from '../../middleware/http-error.js';
 import { localDateForTimezone } from '../doctors/services/doctor.service.js';
 import { getMedicalRecords } from '../medical-records/services/medical-record.service.js';
 import { getPatientPrescriptions } from '../prescriptions/services/prescription.service.js';
+import { getHealthProfile } from '../patients/services/health-profile.service.js';
 
 function localClock(timezone, at) {
   return new Intl.DateTimeFormat('en-GB', { timeZone: timezone,
@@ -133,9 +134,10 @@ export async function activeConsultation(user, appointmentId, database = pool) {
   [appointmentId, user.id], database);
   const visit = result.rows[0];
   if (!visit || visit.verification_status !== 'VERIFIED') throw new HttpError(403, 'No active consultation access.');
-  const [records, prescriptions] = await Promise.all([
+  const [records, prescriptions, health] = await Promise.all([
     getMedicalRecords(user, visit.patient_id, database),
     getPatientPrescriptions(user, visit.patient_id, database),
+    getHealthProfile(user, visit.patient_id, database),
   ]);
-  return { ...visit, records, prescriptions };
+  return { ...visit, records, prescriptions, health };
 }
