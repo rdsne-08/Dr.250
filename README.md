@@ -1,11 +1,11 @@
 # Dr.250
 
-Dr.250 is a small Patient–Doctor application with an Admin doctor-review workspace. Patients keep a personal medical history, choose verified doctors, grant or revoke time-limited access, and view prescriptions and access history. Verified doctors can read only the records of patients who granted them active access and can write prescriptions to those patients' profiles.
+Dr.250 is a Patient–Doctor application with an Admin doctor-review workspace. Patients maintain a self-reported health profile, book verified doctors, request care, and view completed visits, prescriptions, and access history. Doctors can read patient history only with active patient consent and can save prescriptions during an accepted consultation.
 
 ## Features and screenshots
 
-- Patients add medical records, view prescriptions and access history, and grant or revoke verified doctors.
-- Verified doctors see only patients with active grants and can create prescriptions for them.
+- Patients add medical records and a self-reported health profile, book appointments, request care, and view prescriptions and access history.
+- Verified doctors accept requested consultations, review authorized history, save visit prescriptions, and complete consultations. Patients can revoke access.
 - Local accounts use database-backed passwords. Existing Supabase authentication remains supported. Doctor verification and provider record access are audited.
 - Admins can review pending doctor applications at `/admin`, approve or reject them, and inspect reviewed decisions. Admin accounts cannot self-register.
 
@@ -152,9 +152,10 @@ Release verification on 26 October 2026: the database-backed patient and doctor 
 
 1. Show patient registration and medical history using fictional demonstration details.
 2. Show a pending doctor, then have a trusted operator verify the checked license with the audited command below.
-3. Grant that doctor access from the patient dashboard. Show the doctor's authorized patient list and record view.
-4. Save a fictional prescription as the doctor, then show it in the patient's prescription history.
-5. Revoke access as the patient and confirm the doctor can no longer read the record or create a prescription.
+3. Complete the doctor's professional profile and today's availability, then add the patient's self-reported health profile and country.
+4. Book the doctor between 9:00 AM and noon in the doctor's chamber timezone. Request Care during the configured consultation hours.
+5. Accept the request as the doctor, review the authorized history, save a fictional prescription, and complete the consultation.
+6. Refresh or sign in again as the patient to view the completed visit and prescription. Confirm the doctor can no longer open that consultation or write another prescription.
 
 ## Project structure
 

@@ -25,11 +25,11 @@ const navigation = [
   { id: 'queue', href: '#today-queue', icon: CalendarDays },
 ];
 
-function NavigationItems({ compact = false, copy, onNavigate }) {
+function NavigationItems({ compact = false, copy, destinations, onNavigate }) {
   return navigation.map(({ href, icon: Icon, id }) => (
     <a
       key={id}
-      href={href}
+      href={destinations[id] ?? href}
       onClick={onNavigate}
       className={cn(
         'group flex items-center rounded-2xl font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-health-100',
@@ -46,7 +46,7 @@ function NavigationItems({ compact = false, copy, onNavigate }) {
   ));
 }
 
-export function DoctorLayout({ children, copy, doctor, onToggleLanguage }) {
+export function DoctorLayout({ children, copy, destinations = {}, doctor, onToggleLanguage }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const mobileItems = navigation.filter(({ id }) =>
     ['overview', 'patients', 'records', 'profile'].includes(id),
@@ -77,7 +77,7 @@ export function DoctorLayout({ children, copy, doctor, onToggleLanguage }) {
         </div>
 
         <nav className="mt-6 flex flex-col gap-1" aria-label={copy.navigationLabel}>
-          <NavigationItems copy={copy} />
+          <NavigationItems copy={copy} destinations={destinations} />
         </nav>
 
         <div className="mt-auto rounded-2xl border border-health-100 bg-health-50 p-4">
@@ -121,7 +121,7 @@ export function DoctorLayout({ children, copy, doctor, onToggleLanguage }) {
           {mobileItems.map(({ href, icon: Icon, id }) => (
             <a
               key={id}
-              href={href}
+              href={destinations[id] ?? href}
               className={cn(
                 'flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[0.65rem] font-semibold transition',
                 id === 'overview' ? 'bg-health-50 text-health-800' : 'text-ink-500',
@@ -150,7 +150,7 @@ export function DoctorLayout({ children, copy, doctor, onToggleLanguage }) {
         description={copy.topbar.chooseSection}
       >
         <nav className="grid gap-1" aria-label={copy.navigationLabel}>
-          <NavigationItems copy={copy} onNavigate={() => setMoreOpen(false)} />
+          <NavigationItems copy={copy} destinations={destinations} onNavigate={() => setMoreOpen(false)} />
         </nav>
       </Modal>
     </div>

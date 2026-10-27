@@ -88,7 +88,9 @@ export function DoctorPortalPage() {
     finally { setSaving(false); }
   }
 
-  return <DoctorLayout copy={copy} doctor={doctor} onToggleLanguage={toggleLanguage}>
+  return <DoctorLayout copy={copy} doctor={doctor} onToggleLanguage={toggleLanguage}
+    destinations={{ records: selected ? '#patient-records' : '#authorized-patients',
+      prescriptions: consultation ? '#create-prescription' : '#today-queue' }}>
     <main id="doctor-overview" className="mx-auto max-w-[100rem] scroll-mt-24 space-y-8 px-4 pb-28 pt-6 sm:px-7 sm:pt-8 lg:px-10 lg:pb-12">
       <section id="clinical-workspace" className="relative overflow-hidden rounded-3xl bg-ink-950 p-6 text-white shadow-lift sm:p-9">
         <div className="absolute -right-20 -top-24 size-80 rounded-full bg-health-500/20 blur-3xl" aria-hidden="true" />
@@ -104,7 +106,7 @@ export function DoctorPortalPage() {
         </div>
       </section>
 
-      {data.doctor.verification_status !== 'VERIFIED' ? <Card className="border-health-100 p-6">
+      {data.doctor.verification_status !== 'VERIFIED' ? <Card id="authorized-patients" className="scroll-mt-24 border-health-100 p-6">
         <ShieldCheck className="size-8 text-health-700" aria-hidden="true" />
         <h2 className="mt-4 text-xl font-bold">{data.doctor.verification_status === 'REJECTED'
           ? 'Application rejected' : 'Verification pending'}</h2>
