@@ -19,6 +19,7 @@ import { doctorTodayQueue } from '../../appointments/appointment.service.js';
 import { sendSuccess } from '../../../middleware/response.js';
 import { HttpError } from '../../../middleware/http-error.js';
 import { activeConsultation, completeConsultation, decideCare } from '../../appointments/consultation.service.js';
+import { getHealthProfile } from '../../patients/services/health-profile.service.js';
 
 export const doctorRouter = Router();
 
@@ -47,6 +48,13 @@ doctorRouter.post('/consultations/:appointmentId/:action', async (request, respo
 });
 doctorRouter.put('/availability/today', validateTodayAvailability, updateTodayAvailability);
 doctorRouter.use(requireVerifiedDoctor);
+doctorRouter.get('/patients/:patientId/health-profile', async (request, response) => {
+  const id = request.params.patientId;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    throw new HttpError(400, 'A valid patient is required.');
+  }
+  sendSuccess(response, { health: await getHealthProfile(request.user, id) });
+});
 doctorRouter.get('/patients', patients);
 doctorRouter.get('/sessions', sessions);
 doctorRouter.post('/prescriptions', validateCreatePrescription, createPrescription);

@@ -7,6 +7,7 @@ const endpoints = Object.freeze({
   sessions: '/api/sessions',
   verifiedDoctors: '/api/sessions/doctors',
   accessLogs: '/api/patients/access-logs',
+  healthProfile: '/api/patients/health-profile',
 });
 
 async function getDashboard() {
@@ -21,6 +22,10 @@ async function getDashboard() {
 
 export const patientService = Object.freeze({
   getDashboard,
+  getHealthProfile: async () => (await apiClient.get(endpoints.healthProfile)).health,
+  saveHealthProfile: async details => (await apiClient.put(endpoints.healthProfile, details)).profile,
+  addHealthMeasurement: async details => (await apiClient.post(`${endpoints.healthProfile}/measurements`, details)).measurement,
+  updateHealthMeasurement: async (id, details) => (await apiClient.patch(`${endpoints.healthProfile}/measurements/${id}`, details)).measurement,
   createRecord: async ({ patientId, diagnosis, notes }) => (await apiClient.post('/api/medical-records', {
     patient_id: patientId, diagnosis, notes,
   })).record,

@@ -15,6 +15,7 @@ import { PatientWelcome } from '../components/PatientWelcome.jsx';
 import { PatientCountry } from '../components/PatientCountry.jsx';
 import { FindDoctor } from '../components/FindDoctor.jsx';
 import { MyAppointment } from '../components/MyAppointment.jsx';
+import { MyHealthProfile } from '../components/MyHealthProfile.jsx';
 
 const copy = {
   en: {
@@ -22,7 +23,7 @@ const copy = {
     nav: { dashboard: 'Dashboard', records: 'Medical records', doctors: 'Doctor access',
       findDoctor: 'Find a Doctor', appointments: 'My Appointment',
       timeline: 'Timeline', prescriptions: 'Prescriptions', accessLogs: 'Access history',
-      profile: 'Profile', more: 'More' },
+      profile: 'Profile', healthProfile: 'My Health Profile', more: 'More' },
     navShort: { dashboard: 'Home', records: 'Records', profile: 'Profile' },
     sidebar: { portal: 'Patient portal', patientId: 'Patient ID',
       privacyTitle: 'Your records, your choice',
@@ -44,7 +45,7 @@ const copy = {
     nav: { dashboard: 'ড্যাশবোর্ড', records: 'স্বাস্থ্য নথি', doctors: 'ডাক্তারের প্রবেশাধিকার',
       findDoctor: 'ডাক্তার খুঁজুন', appointments: 'আমার অ্যাপয়েন্টমেন্ট',
       timeline: 'টাইমলাইন', prescriptions: 'প্রেসক্রিপশন', accessLogs: 'প্রবেশের ইতিহাস',
-      profile: 'প্রোফাইল', more: 'আরও' },
+      profile: 'প্রোফাইল', healthProfile: 'আমার স্বাস্থ্য প্রোফাইল', more: 'আরও' },
     navShort: { dashboard: 'হোম', records: 'নথি', profile: 'প্রোফাইল' },
     sidebar: { portal: 'রোগীর পোর্টাল', patientId: 'রোগী আইডি',
       privacyTitle: 'আপনার নথি, আপনার সিদ্ধান্ত',
@@ -115,6 +116,7 @@ export function PatientDashboard() {
           </a>)}
       </div>
       <PatientCountry patient={data.patient} onSaved={reload} />
+      <MyHealthProfile />
       <FindDoctor key={`${data.patient.country_code}:${doctorRefresh}`} patient={data.patient}
         onBooked={() => setAppointmentRefresh(value => value + 1)} />
       <MyAppointment key={appointmentRefresh} onChanged={() => setDoctorRefresh(value => value + 1)} />

@@ -66,7 +66,7 @@ export function DoctorPortalPage() {
 
   const copy = copies[language] ?? copies.en;
   const consultationPatient = consultation && { ...consultation, id: consultation.patient_id,
-    records: consultation.records, prescriptions: consultation.prescriptions };
+    records: consultation.records, prescriptions: consultation.prescriptions, health: consultation.health };
   const selected = consultationPatient?.id === patientId ? consultationPatient
     : data.patients.find(patient => patient.id === patientId) ?? data.patients[0];
   const visiblePatients = data.patients.filter(patient =>
@@ -116,7 +116,7 @@ export function DoctorPortalPage() {
         {consultation && <Card className="border-health-200 bg-health-50 p-5">
           <strong className="text-health-900">Active consultation · Queue #{consultation.queue_position} · {consultation.local_date}</strong>
           <p className="mt-2 text-sm">{consultation.full_name} · Blood group: {consultation.blood_group || 'Not recorded'} · Date of birth: {consultation.date_of_birth || 'Not recorded'}</p>
-          <p className="mt-1 text-sm">Conditions, allergies, and measurements appear in medical records if recorded.</p>
+          <p className="mt-1 text-sm">Self-reported health details appear with this patient's history below.</p>
         </Card>}
         <div className="grid gap-4 sm:grid-cols-3">
           {[{ icon: UsersRound, label: 'Authorized patients', value: data.patients.length },
@@ -152,6 +152,25 @@ export function DoctorPortalPage() {
             </>}
           </Card>
           {selected && <div className="space-y-6">
+            <Card className="p-5 sm:p-7">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-health-700">Self-reported by patient</p>
+              <h2 className="mt-2 text-xl font-bold">Health profile · {selected.full_name}</h2>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">{[
+                ['Medical conditions', selected.health?.profile?.conditions],
+                ['Relevant medical history', selected.health?.profile?.medical_history],
+                ['Allergies', selected.health?.profile?.allergies],
+                ['Current medications', selected.health?.profile?.current_medications],
+                ['Health notes', selected.health?.profile?.notes],
+              ].map(([label, value]) => <div key={label}><dt className="font-semibold">{label}</dt>
+                <dd className="whitespace-pre-wrap text-sm text-ink-500">{value || 'Not reported'}</dd></div>)}</dl>
+              <h3 className="mt-5 font-bold">Measurements</h3>
+              {(selected.health?.measurements ?? []).length === 0 ? <p className="text-sm text-ink-500">None reported.</p> :
+                <ul className="mt-2 space-y-2 text-sm">{selected.health.measurements.map(item => <li key={item.id}>
+                  {item.measured_on} · {item.systolic_mmhg !== null ? `${item.systolic_mmhg}/${item.diastolic_mmhg} mmHg` : 'BP not reported'}
+                  {' · '}{item.pulse_bpm !== null ? `${item.pulse_bpm} beats/min` : 'Pulse not reported'}
+                  {' · '}{item.weight_kg !== null ? `${item.weight_kg} kg` : 'Weight not reported'}
+                </li>)}</ul>}
+            </Card>
             <Card id="patient-records" className="scroll-mt-24 p-5 sm:p-7">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-health-700">Authorized history</p>
               <h2 className="mt-2 text-2xl font-bold text-ink-950">Medical records · {selected.full_name}</h2>
