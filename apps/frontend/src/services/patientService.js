@@ -44,4 +44,5 @@ export const patientService = Object.freeze({
     doctor_id: doctorId, local_date: localDate,
   })).appointment,
   cancelAppointment: async id => (await apiClient.post(`/api/appointments/${id}/cancel`, {})).appointment,
+  requestCare: async id => (await apiClient.post(`/api/appointments/${id}/request-care`, {})).appointment,
 });

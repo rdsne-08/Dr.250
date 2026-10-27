@@ -12,11 +12,13 @@ test('same-day booking enforces identity, country, window, capacity and permanen
   assert.match(url.pathname, /^\/dr250_release_[a-z_]+$/);
   const [{ createApp }, { query, closeDatabase }, { verifyEntity },
     { saveTodayAvailability, localDateForTimezone },
-    { bookAppointment, cancelAppointment, doctorTodayQueue }] = await Promise.all([
+    { bookAppointment, cancelAppointment, doctorTodayQueue },
+    { requestCare, decideCare, completeConsultation, activeConsultation }] = await Promise.all([
     import('../src/app.js'), import('../src/database/pool.js'),
     import('../src/modules/admin/services/admin.service.js'),
     import('../src/modules/doctors/services/doctor.service.js'),
     import('../src/modules/appointments/appointment.service.js'),
+    import('../src/modules/appointments/consultation.service.js'),
   ]);
   const server = await new Promise(resolve => {
     const listener = createApp().listen(0, '127.0.0.1', () => resolve(listener));
@@ -25,6 +27,7 @@ test('same-day booking enforces identity, country, window, capacity and permanen
   const suffix = Date.now();
   const password = 'Booking-test-123!';
   const users = [];
+  let prescriptionId;
   async function request(method, path, body, token) {
     const response = await fetch(base + path, { method, headers: {
       ...(body ? { 'Content-Type': 'application/json' } : {}),
@@ -159,7 +162,86 @@ test('same-day booking enforces identity, country, window, capacity and permanen
     assert.equal((await request('GET', '/api/appointments', null, patients[1].token)).data.data.appointments.length <= 1, true);
     assert.equal((await request('GET', '/api/doctors/queue/today', null, doctor.token)).data.data.queue.active_count, 2);
     assert.equal((await request('GET', '/api/doctors/queue/today', null, otherDoctor.token)).data.data.queue.appointments.length, 0);
+    await assert.rejects(requestCare(patients[1].id, third.id, undefined, ten),
+      error => error.statusCode === 404);
+    await assert.rejects(requestCare(patients[0].id, first.id, undefined, ten),
+      error => error.statusCode === 409);
+    await assert.rejects(requestCare(patients[0].id, third.id, undefined,
+      new Date(ten.getTime() + 24 * 60 * 60_000)), error => error.statusCode === 409);
+    await query("UPDATE public.doctors SET verification_status='REJECTED' WHERE id=$1", [doctor.profile.id]);
+    await assert.rejects(requestCare(patients[0].id, third.id, undefined, ten),
+      error => error.statusCode === 403);
+    await query("UPDATE public.doctors SET verification_status='VERIFIED' WHERE id=$1", [doctor.profile.id]);
+    assert.equal((await requestCare(patients[0].id, third.id, undefined, ten)).consultation_status, 'PENDING');
+    await assert.rejects(requestCare(patients[0].id, third.id, undefined, ten),
+      error => error.statusCode === 409);
+    await assert.rejects(decideCare(otherDoctor.id, third.id, 'accept', undefined, ten),
+      error => error.statusCode === 404);
+    assert.equal((await decideCare(doctor.id, third.id, 'decline', undefined, ten)).consultation_status, 'DECLINED');
+    assert.equal((await request('GET', '/api/appointments', null, patients[0].token)).data.data.appointments
+      .find(item => item.id === third.id).consultation_status, 'DECLINED');
+    await requestCare(patients[0].id, third.id, undefined, ten);
+    assert.equal((await decideCare(doctor.id, third.id, 'accept', undefined, ten)).consultation_status, 'ACTIVE');
+    await assert.rejects(decideCare(doctor.id, third.id, 'accept', undefined, ten),
+      error => error.statusCode === 409);
+    const secondOwner = concurrent[0].status === 'fulfilled' ? patients[1] : patients[2];
+    const secondId = concurrent.find(item => item.status === 'fulfilled').value.id;
+    await requestCare(secondOwner.id, secondId, undefined, ten);
+    await assert.rejects(decideCare(doctor.id, secondId, 'accept', undefined, ten),
+      error => error.statusCode === 409);
+    assert.equal((await request('GET', `/api/doctors/consultations/${third.id}`, null, otherDoctor.token)).status, 403);
+    const opened = await activeConsultation({ id: doctor.id, role: 'DOCTOR' }, third.id);
+    assert.equal(opened.patient_id, patients[0].profile.id);
+    assert.equal((await request('GET', `/api/medical-records/${patients[0].profile.id}`, null, doctor.token)).status, 200);
+    const saved = await request('POST', '/api/doctors/prescriptions', {
+      patient_id: patients[0].profile.id, medicine: 'Consultation medicine',
+      dosage: 'Once daily', instructions: 'After food',
+    }, doctor.token);
+    assert.equal(saved.status, 201, JSON.stringify(saved.data));
+    prescriptionId = saved.data.data.prescription.id;
+    assert.equal(saved.data.data.prescription.appointment_id, third.id);
+    await assert.rejects(query('UPDATE public.prescriptions SET medicine=$2 WHERE id=$1',
+      [prescriptionId, 'Altered medicine']), error => error.code === 'P0001');
+    assert.equal((await request('POST', '/api/doctors/prescriptions', {
+      patient_id: patients[0].profile.id, medicine: 'Consultation medicine',
+      dosage: 'Once daily', instructions: 'After food',
+    }, doctor.token)).status, 409);
+    assert.equal((await request('GET', '/api/patients/prescriptions', null, patients[0].token)).data.data.prescriptions
+      .some(item => item.id === prescriptionId), true);
+    assert.equal((await completeConsultation(doctor.id, third.id)).consultation_status, 'COMPLETED');
+    assert.equal((await request('GET', `/api/medical-records/${patients[0].profile.id}`, null, doctor.token)).status, 403);
+    assert.equal((await request('POST', '/api/doctors/prescriptions', {
+      patient_id: patients[0].profile.id, medicine: 'Blocked', dosage: 'Once', instructions: 'None',
+    }, doctor.token)).status, 403);
+    await assert.rejects(requestCare(patients[0].id, third.id, undefined, ten),
+      error => error.statusCode === 409);
+    const completed = (await request('GET', '/api/appointments', null, patients[0].token)).data.data.appointments
+      .find(item => item.id === third.id);
+    assert.equal(completed.consultation_status, 'COMPLETED');
+    assert.equal(completed.visit_prescriptions[0].id, prescriptionId);
+    const renewedToken = (await request('POST', '/api/auth/login', {
+      email: `one.${suffix}@example.invalid`, password,
+    })).data.data.access_token;
+    assert.equal((await request('GET', '/api/appointments', null, renewedToken)).data.data.appointments
+      .find(item => item.id === third.id).visit_prescriptions[0].id, prescriptionId);
+    await decideCare(doctor.id, secondId, 'decline', undefined, ten);
+    assert.equal((await request('PATCH', '/api/patients/profile/country', {
+      country_code: 'BD',
+    }, patients[3].token)).status, 200);
+    const revocable = await bookAppointment(patients[3].id, otherDoctor.profile.id, today, undefined, ten);
+    await requestCare(patients[3].id, revocable.id, undefined, ten);
+    await decideCare(otherDoctor.id, revocable.id, 'accept', undefined, ten);
+    const grant = (await query('SELECT id FROM public.access_sessions WHERE appointment_id=$1',
+      [revocable.id])).rows[0];
+    assert.equal((await request('PATCH', `/api/sessions/${grant.id}/revoke`, {}, patients[3].token)).status, 200);
+    assert.equal((await request('GET', `/api/doctors/consultations/${revocable.id}`, null, otherDoctor.token)).status, 403);
+    assert.equal((await request('GET', `/api/medical-records/${patients[3].profile.id}`, null, otherDoctor.token)).status, 403);
+    assert.equal((await request('POST', '/api/doctors/prescriptions', {
+      patient_id: patients[3].profile.id, medicine: 'Blocked', dosage: 'Once', instructions: 'None',
+    }, otherDoctor.token)).status, 403);
+    await completeConsultation(otherDoctor.id, revocable.id);
   } finally {
+    if (prescriptionId) await query('DELETE FROM public.prescriptions WHERE id=$1', [prescriptionId]);
     for (const id of users.reverse()) await query('DELETE FROM public.users WHERE id=$1', [id]);
     await new Promise(resolve => server.close(resolve));
     await closeDatabase();

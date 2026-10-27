@@ -4,6 +4,7 @@ import { requireRole } from '../auth/middleware/requireRole.js';
 import { HttpError } from '../../middleware/http-error.js';
 import { sendSuccess } from '../../middleware/response.js';
 import { bookAppointment, cancelAppointment, discoverDoctors, patientAppointments } from './appointment.service.js';
+import { requestCare } from './consultation.service.js';
 
 export const appointmentRouter = Router();
 appointmentRouter.use(authenticate, requireRole('PATIENT'));
@@ -35,4 +36,11 @@ appointmentRouter.post('/:appointmentId/cancel', async (request, response) => {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(appointmentId)
     || Object.keys(request.body ?? {}).length) throw new HttpError(400, 'A valid appointment is required.');
   sendSuccess(response, { appointment: await cancelAppointment(request.user.id, appointmentId) });
+});
+
+appointmentRouter.post('/:appointmentId/request-care', async (request, response) => {
+  const { appointmentId } = request.params;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(appointmentId)
+    || Object.keys(request.body ?? {}).length) throw new HttpError(400, 'A valid appointment is required.');
+  sendSuccess(response, { appointment: await requestCare(request.user.id, appointmentId) });
 });
