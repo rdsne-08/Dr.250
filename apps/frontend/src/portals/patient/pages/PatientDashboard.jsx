@@ -12,11 +12,15 @@ import { DoctorAccessCard } from '../components/DoctorAccessCard.jsx';
 import { HealthTimeline } from '../components/HealthTimeline.jsx';
 import { PatientLayout } from '../components/PatientLayout.jsx';
 import { PatientWelcome } from '../components/PatientWelcome.jsx';
+import { PatientCountry } from '../components/PatientCountry.jsx';
+import { FindDoctor } from '../components/FindDoctor.jsx';
+import { MyAppointment } from '../components/MyAppointment.jsx';
 
 const copy = {
   en: {
     languageName: 'বাংলা', navigationLabel: 'Patient sections',
     nav: { dashboard: 'Dashboard', records: 'Medical records', doctors: 'Doctor access',
+      findDoctor: 'Find a Doctor', appointments: 'My Appointment',
       timeline: 'Timeline', prescriptions: 'Prescriptions', accessLogs: 'Access history',
       profile: 'Profile', more: 'More' },
     navShort: { dashboard: 'Home', records: 'Records', profile: 'Profile' },
@@ -38,6 +42,7 @@ const copy = {
   bn: {
     languageName: 'English', navigationLabel: 'রোগীর বিভাগ',
     nav: { dashboard: 'ড্যাশবোর্ড', records: 'স্বাস্থ্য নথি', doctors: 'ডাক্তারের প্রবেশাধিকার',
+      findDoctor: 'ডাক্তার খুঁজুন', appointments: 'আমার অ্যাপয়েন্টমেন্ট',
       timeline: 'টাইমলাইন', prescriptions: 'প্রেসক্রিপশন', accessLogs: 'প্রবেশের ইতিহাস',
       profile: 'প্রোফাইল', more: 'আরও' },
     navShort: { dashboard: 'হোম', records: 'নথি', profile: 'প্রোফাইল' },
@@ -66,6 +71,8 @@ export function PatientDashboard() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [appointmentRefresh, setAppointmentRefresh] = useState(0);
+  const [doctorRefresh, setDoctorRefresh] = useState(0);
 
   if (isLoading) return <LoadingScreen label="Loading your medical history…" />;
   if (error || !data) return <ErrorState title="Could not load your medical history"
@@ -107,6 +114,10 @@ export function PatientDashboard() {
             <p className="mt-1 text-2xl font-bold text-ink-950">{item.value}</p>
           </a>)}
       </div>
+      <PatientCountry patient={data.patient} onSaved={reload} />
+      <FindDoctor key={`${data.patient.country_code}:${doctorRefresh}`} patient={data.patient}
+        onBooked={() => setAppointmentRefresh(value => value + 1)} />
+      <MyAppointment key={appointmentRefresh} onChanged={() => setDoctorRefresh(value => value + 1)} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(19rem,1fr)]">
         <div className="space-y-6">
           <Card id="medical-records" className="scroll-mt-24 p-5 sm:p-7">

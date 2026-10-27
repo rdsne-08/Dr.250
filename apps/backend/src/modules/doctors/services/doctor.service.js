@@ -144,6 +144,12 @@ export async function saveTodayAvailability(userId, details, database = pool, at
         to_char(consultation_end,'HH24:MI') AS consultation_end, updated_at`,
     [doctor.id, localDate, doctor.practice_timezone, details.available,
       details.maxPatients, details.consultationStart, details.consultationEnd]);
+    const activeBookings = (await transaction.query(`SELECT count(*)::int AS total
+        FROM public.appointments WHERE doctor_id=$1 AND local_date=$2 AND status='BOOKED'`,
+    [doctor.id, localDate])).rows[0].total;
+    if (details.maxPatients < activeBookings) {
+      throw new HttpError(409, 'Daily capacity cannot be lower than active appointments.');
+    }
     await transaction.query(`INSERT INTO public.audit_logs
       (user_id, action, entity_type, entity_id, metadata)
       VALUES ($1,'DOCTOR_AVAILABILITY_UPDATED','DOCTOR',$2,$3::jsonb)`,

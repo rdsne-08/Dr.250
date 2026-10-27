@@ -22,6 +22,7 @@ const navigation = [
   { id: 'prescriptions', href: '#create-prescription', icon: ClipboardPlus },
   { id: 'profile', href: '#professional-profile', icon: UserRound },
   { id: 'availability', href: '#today-availability', icon: CalendarDays },
+  { id: 'queue', href: '#today-queue', icon: CalendarDays },
 ];
 
 function NavigationItems({ compact = false, copy, onNavigate }) {

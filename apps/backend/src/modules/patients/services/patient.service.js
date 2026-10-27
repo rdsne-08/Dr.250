@@ -8,6 +8,7 @@ const PATIENT_PROFILE_SELECT = `
     patient.gender,
     patient.blood_group,
     patient.emergency_contact,
+    patient.country_code,
     patient.created_at,
     patient.updated_at,
     profile.full_name,
@@ -34,6 +35,15 @@ export async function getPatientProfile(userId, database = pool) {
     throw new HttpError(404, 'Patient profile not found.', { code: 'PATIENT_NOT_FOUND' });
   }
   return patient;
+}
+
+export async function updatePatientCountry(userId, countryCode, database = pool) {
+  const result = await query(`UPDATE public.patients AS patient SET country_code=$2
+    FROM public.profiles AS profile
+    WHERE patient.profile_id=profile.id AND profile.user_id=$1 AND profile.role='PATIENT'
+    RETURNING patient.id`, [userId, countryCode], database);
+  if (!result.rows[0]) throw new HttpError(404, 'Patient profile not found.');
+  return getPatientProfile(userId, database);
 }
 
 export async function assertPatientOwnership(userId, patientId, database = pool) {
