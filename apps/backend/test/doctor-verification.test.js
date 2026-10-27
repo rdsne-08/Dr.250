@@ -90,13 +90,13 @@ test('verified doctor with a patient grant can read and save to that patient pro
     if (sql.includes('AS authorized')) return { rows: [{ id: 'doctor-1',
       verification_status: 'VERIFIED', authorized: true }] };
     if (sql.includes('FROM public.medical_records')) return { rows: [{ id: 'record-1', patient_id: 'patient-1', title: 'Diagnosis' }] };
-    if (sql.includes('INSERT INTO public.audit_logs')) return { rows: [{ id: 'audit-1' }] };
     if (sql.includes('INSERT INTO public.prescriptions')) {
-      assert.match(sql, /FOR SHARE OF session, verified_doctor/);
-      assert.match(sql, /profile\.user_id = \$7/);
+      assert.match(sql, /FOR SHARE OF appointment, session, verified_doctor/);
+      assert.match(sql, /appointment\.consultation_status='ACTIVE'/);
       assert.match(sql, /session\.revoked_at IS NULL/);
       return { rows: [{ id: 'rx-1', patient_id: values[0], doctor_id: values[1] }] };
     }
+    if (sql.includes('INSERT INTO public.audit_logs')) return { rows: [{ id: 'audit-1' }] };
     return { rows: [{ id: 'doctor-1', verification_status: 'VERIFIED' }] };
   } };
   const user = { id: 'doctor-user', role: 'DOCTOR' };

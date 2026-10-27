@@ -43,13 +43,32 @@ export function DoctorPortalPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [consultation, setConsultation] = useState(null);
+  const [consultationError, setConsultationError] = useState('');
+
+  async function openConsultation(appointmentId) {
+    setConsultationError('');
+    try {
+      const visit = await doctorService.getConsultation(appointmentId);
+      setConsultation(visit); setPatientId(visit.patient_id);
+      document.getElementById('patient-records')?.scrollIntoView({ behavior: 'smooth' });
+      await reload();
+    } catch (failure) { setConsultationError(failure.message || 'Could not open consultation.'); throw failure; }
+  }
+  function closeConsultation(appointmentId) {
+    if (consultation?.id === appointmentId) setConsultation(null);
+    setPatientId(''); reload();
+  }
 
   if (isLoading) return <LoadingScreen label="Loading authorized patients…" />;
   if (error || !data) return <ErrorState title="Could not load doctor workspace"
     description={error?.message || 'Please try again.'} actionLabel="Retry" onRetry={reload} />;
 
   const copy = copies[language] ?? copies.en;
-  const selected = data.patients.find(patient => patient.id === patientId) ?? data.patients[0];
+  const consultationPatient = consultation && { ...consultation, id: consultation.patient_id,
+    records: consultation.records, prescriptions: consultation.prescriptions };
+  const selected = consultationPatient?.id === patientId ? consultationPatient
+    : data.patients.find(patient => patient.id === patientId) ?? data.patients[0];
   const visiblePatients = data.patients.filter(patient =>
     patient.full_name.toLowerCase().includes(search.toLowerCase().trim()));
   const doctor = { id: data.doctor.id, name: data.doctor.full_name,
@@ -62,6 +81,7 @@ export function DoctorPortalPage() {
     try {
       await doctorService.createPrescription({ patientId: selected.id, ...form });
       setForm(emptyPrescription);
+      if (consultation) setConsultation(await doctorService.getConsultation(consultation.id));
       await reload();
       setMessage('Prescription saved to this patient’s profile.');
     } catch (failure) { setSaveError(failure.message || 'Could not save prescription.'); }
@@ -92,6 +112,12 @@ export function DoctorPortalPage() {
           ? 'Your doctor application was not approved. Patient records and prescription tools are unavailable.'
           : 'Your application is awaiting review. Patient records and prescription tools become available after approval.'}</p>
       </Card> : <>
+        {consultationError && <p className="text-red-700" role="alert">{consultationError}</p>}
+        {consultation && <Card className="border-health-200 bg-health-50 p-5">
+          <strong className="text-health-900">Active consultation · Queue #{consultation.queue_position} · {consultation.local_date}</strong>
+          <p className="mt-2 text-sm">{consultation.full_name} · Blood group: {consultation.blood_group || 'Not recorded'} · Date of birth: {consultation.date_of_birth || 'Not recorded'}</p>
+          <p className="mt-1 text-sm">Conditions, allergies, and measurements appear in medical records if recorded.</p>
+        </Card>}
         <div className="grid gap-4 sm:grid-cols-3">
           {[{ icon: UsersRound, label: 'Authorized patients', value: data.patients.length },
             { icon: FileHeart, label: 'Visible records', value: data.patients.reduce((n, patient) => n + patient.records.length, 0) },
@@ -146,7 +172,7 @@ export function DoctorPortalPage() {
                   {item.instructions && <p className="mt-1 text-sm text-ink-500">{item.instructions}</p>}
                 </li>)}</ul>}
             </Card>
-            <Card id="create-prescription" className="scroll-mt-24 p-5 sm:p-7">
+            {consultation?.patient_id === selected.id && <Card id="create-prescription" className="scroll-mt-24 p-5 sm:p-7">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-health-700">Care plan</p>
               <h2 className="mt-2 text-2xl font-bold text-ink-950">Create prescription</h2>
               <p className="mt-2 text-sm text-ink-500">For {selected.full_name}. It will appear in this patient’s profile.</p>
@@ -158,7 +184,7 @@ export function DoctorPortalPage() {
                   value={form[field]} onChange={event => setForm(current => ({ ...current, [field]: event.target.value }))} />)}
                 <Button className="sm:col-span-2" type="submit" loading={saving}>Save prescription</Button>
               </form>
-            </Card>
+            </Card>}
           </div>}
         </div>
       </>}
@@ -166,7 +192,7 @@ export function DoctorPortalPage() {
         <ProfessionalProfile doctor={data.doctor} onSaved={reload} />
         <TodayAvailability key={`${data.doctor.id}:${data.doctor.updated_at}`} doctor={data.doctor} />
       </div>
-      <TodayQueue />
+      <TodayQueue onOpen={openConsultation} onComplete={closeConsultation} />
     </main>
   </DoctorLayout>;
 }

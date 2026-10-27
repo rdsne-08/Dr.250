@@ -102,14 +102,16 @@ export async function bookAppointment(userId, doctorId, expectedDate, database =
 export async function cancelAppointment(userId, appointmentId, database = pool) {
   return withTransaction(async transaction => {
     const owned = (await transaction.query(`SELECT appointment.id, appointment.doctor_id,
-      appointment.local_date::text AS local_date, appointment.status
+      appointment.local_date::text AS local_date, appointment.status, appointment.consultation_status
       FROM public.appointments AS appointment
       JOIN public.patients AS patient ON patient.id=appointment.patient_id
       JOIN public.profiles AS profile ON profile.id=patient.profile_id
       WHERE appointment.id=$1 AND profile.user_id=$2 FOR UPDATE OF appointment`,
     [appointmentId, userId])).rows[0];
     if (!owned) throw new HttpError(404, 'Appointment not found.');
-    if (owned.status !== 'BOOKED') throw new HttpError(409, 'Appointment is already cancelled.');
+    if (owned.status !== 'BOOKED' || ['ACTIVE', 'COMPLETED'].includes(owned.consultation_status)) {
+      throw new HttpError(409, 'An active or completed consultation cannot be cancelled.');
+    }
     const result = await transaction.query(`UPDATE public.appointments
       SET status='CANCELLED', cancelled_at=now() WHERE id=$1
       RETURNING id,doctor_id,patient_id,local_date::text AS local_date,
@@ -121,11 +123,17 @@ export async function cancelAppointment(userId, appointmentId, database = pool) 
 export async function patientAppointments(userId, database = pool) {
   const result = await query(`SELECT appointment.id, appointment.doctor_id,
     appointment.local_date::text AS local_date, appointment.queue_position,
-    appointment.status, appointment.created_at, appointment.cancelled_at,
+    appointment.status, appointment.consultation_status,
+    appointment.created_at, appointment.cancelled_at,
     profile.full_name AS doctor_name, doctor.specialization,
     doctor.chamber_name, doctor.chamber_address, doctor.city, doctor.practice_country,
+    coalesce(availability.practice_timezone,doctor.practice_timezone) AS practice_timezone,
     to_char(availability.consultation_start,'HH24:MI') AS consultation_start,
-    to_char(availability.consultation_end,'HH24:MI') AS consultation_end
+    to_char(availability.consultation_end,'HH24:MI') AS consultation_end,
+    coalesce(jsonb_agg(jsonb_build_object('id',prescription.id,'medicine',prescription.medicine,
+      'dosage',prescription.dosage,'duration',prescription.duration,
+      'instructions',prescription.instructions,'created_at',prescription.created_at)
+      ORDER BY prescription.created_at) FILTER (WHERE prescription.id IS NOT NULL),'[]'::jsonb) AS visit_prescriptions
     FROM public.appointments AS appointment
     JOIN public.patients AS patient ON patient.id=appointment.patient_id
     JOIN public.profiles AS patient_profile ON patient_profile.id=patient.profile_id
@@ -133,7 +141,11 @@ export async function patientAppointments(userId, database = pool) {
     JOIN public.profiles AS profile ON profile.id=doctor.profile_id
     LEFT JOIN public.doctor_daily_availability AS availability
       ON availability.doctor_id=appointment.doctor_id AND availability.local_date=appointment.local_date
-    WHERE patient_profile.user_id=$1 ORDER BY appointment.local_date DESC, appointment.created_at DESC`,
+    LEFT JOIN public.prescriptions AS prescription ON prescription.appointment_id=appointment.id
+    WHERE patient_profile.user_id=$1
+    GROUP BY appointment.id, doctor.id, profile.full_name,
+      availability.doctor_id, availability.local_date
+    ORDER BY appointment.local_date DESC, appointment.created_at DESC`,
   [userId], database);
   return result.rows;
 }
@@ -153,7 +165,8 @@ export async function doctorTodayQueue(userId, database = pool, at = new Date())
     WHERE doctor_id=$1 AND local_date=$2 AND practice_timezone=$3`,
   [doctor.id, localDate, doctor.practice_timezone], database)).rows[0] ?? null;
   const appointments = (await query(`SELECT appointment.id, appointment.queue_position,
-    appointment.status, appointment.created_at, profile.full_name AS patient_name
+    appointment.status, appointment.consultation_status,
+    appointment.created_at, profile.full_name AS patient_name
     FROM public.appointments AS appointment
     JOIN public.patients AS patient ON patient.id=appointment.patient_id
     JOIN public.profiles AS profile ON profile.id=patient.profile_id

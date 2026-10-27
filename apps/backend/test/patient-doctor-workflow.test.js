@@ -4,7 +4,7 @@ import test from 'node:test';
 const disposable = process.env.AUTH_INTEGRATION_URL;
 if (disposable) process.env.DATABASE_URL = disposable;
 
-test('patient grant, doctor read and prescription, patient history, then revocation', {
+test('patient grant allows history reads, while prescribing requires a consultation and revocation closes access', {
   skip: !disposable && 'Set AUTH_INTEGRATION_URL to a migrated disposable loopback dr250_release_* database.',
 }, async () => {
   const url = new URL(disposable);
@@ -75,15 +75,14 @@ test('patient grant, doctor read and prescription, patient history, then revocat
     const authorized = await request('GET', `/api/medical-records/${patientId}`, null, doctorToken);
     assert.equal(authorized.status, 200, JSON.stringify(authorized.data));
     assert.equal(authorized.data.data.records[0].diagnosis, 'Workflow diagnosis');
-    const saved = await request('POST', '/api/doctors/prescriptions', {
+    const withoutConsultation = await request('POST', '/api/doctors/prescriptions', {
       patient_id: patientId, medicine: 'Example medicine', dosage: 'Once daily',
       instructions: 'After food',
     }, doctorToken);
-    assert.equal(saved.status, 201, JSON.stringify(saved.data));
-    assert.equal(saved.data.data.prescription.patient_id, patientId);
+    assert.equal(withoutConsultation.status, 403, JSON.stringify(withoutConsultation.data));
     const prescriptions = await request('GET', '/api/patients/prescriptions', null, patientToken);
     assert.equal(prescriptions.status, 200);
-    assert.ok(prescriptions.data.data.prescriptions.some(item => item.id === saved.data.data.prescription.id));
+    assert.equal(prescriptions.data.data.prescriptions.length, 0);
     const logs = await request('GET', '/api/patients/access-logs', null, patientToken);
     assert.equal(logs.status, 200);
     assert.ok(logs.data.data.logs.some(item => item.action === 'RECORDS_READ'));
