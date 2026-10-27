@@ -10,12 +10,13 @@ import { doctorService } from '../../../services/doctorService.js';
 import { DoctorLayout } from '../components/DoctorLayout.jsx';
 import { ProfessionalProfile } from '../components/ProfessionalProfile.jsx';
 import { TodayAvailability } from '../components/TodayAvailability.jsx';
+import { TodayQueue } from '../components/TodayQueue.jsx';
 
 const emptyPrescription = { medicine: '', dosage: '', duration: '', instructions: '' };
 const copies = {
   en: { languageName: 'বাংলা', navigationLabel: 'Doctor sections',
     nav: { overview: 'Overview', patients: 'Authorized patients', records: 'Patient records',
-      prescriptions: 'Write prescription', profile: 'Professional Profile', availability: 'Today’s Availability', more: 'More' },
+      prescriptions: 'Write prescription', profile: 'Professional Profile', availability: 'Today’s Availability', queue: 'Today’s Queue', more: 'More' },
     navShort: { overview: 'Home', patients: 'Patients', records: 'Records', profile: 'Profile' },
     sidebar: { portal: 'Doctor portal', doctorId: 'Doctor ID',
       privacyTitle: 'Access follows consent',
@@ -24,7 +25,7 @@ const copies = {
       chooseSection: 'Choose a section to open.' } },
   bn: { languageName: 'English', navigationLabel: 'ডাক্তারের বিভাগ',
     nav: { overview: 'ড্যাশবোর্ড', patients: 'অনুমতিপ্রাপ্ত রোগী', records: 'রোগীর নথি',
-      prescriptions: 'প্রেসক্রিপশন লিখুন', profile: 'পেশাগত প্রোফাইল', availability: 'আজকের সময়সূচি', more: 'আরও' },
+      prescriptions: 'প্রেসক্রিপশন লিখুন', profile: 'পেশাগত প্রোফাইল', availability: 'আজকের সময়সূচি', queue: 'আজকের সারি', more: 'আরও' },
     navShort: { overview: 'হোম', patients: 'রোগী', records: 'নথি', profile: 'প্রোফাইল' },
     sidebar: { portal: 'ডাক্তারের পোর্টাল', doctorId: 'ডাক্তার আইডি',
       privacyTitle: 'অনুমতির ভিত্তিতে প্রবেশ',
@@ -165,6 +166,7 @@ export function DoctorPortalPage() {
         <ProfessionalProfile doctor={data.doctor} onSaved={reload} />
         <TodayAvailability key={`${data.doctor.id}:${data.doctor.updated_at}`} doctor={data.doctor} />
       </div>
+      <TodayQueue />
     </main>
   </DoctorLayout>;
 }

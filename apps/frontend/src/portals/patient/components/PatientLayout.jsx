@@ -19,10 +19,12 @@ const navigation = [
   { id: 'dashboard', href: '#patient-dashboard', icon: House },
   { id: 'records', href: '#medical-records', icon: FileHeart },
   { id: 'doctors', href: '#doctor-access', icon: Stethoscope },
+  { id: 'findDoctor', href: '#find-doctor', icon: Stethoscope },
+  { id: 'appointments', href: '#my-appointment', icon: FileHeart },
   { id: 'timeline', href: '#health-timeline', icon: FileHeart },
   { id: 'prescriptions', href: '#prescriptions', icon: Pill },
   { id: 'accessLogs', href: '#access-logs', icon: ShieldCheck },
-  { id: 'profile', href: '#patient-profile', icon: UserRound },
+  { id: 'profile', href: '#patient-country', icon: UserRound },
 ];
 
 function NavigationItems({ compact = false, copy, onNavigate }) {

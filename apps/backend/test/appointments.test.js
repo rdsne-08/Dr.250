@@ -1,0 +1,167 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+const disposable = process.env.AUTH_INTEGRATION_URL;
+if (disposable) process.env.DATABASE_URL = disposable;
+
+test('same-day booking enforces identity, country, window, capacity and permanent queue numbers', {
+  skip: !disposable && 'Set AUTH_INTEGRATION_URL to a migrated disposable loopback dr250_release_* database.',
+}, async () => {
+  const url = new URL(disposable);
+  assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
+  assert.match(url.pathname, /^\/dr250_release_[a-z_]+$/);
+  const [{ createApp }, { query, closeDatabase }, { verifyEntity },
+    { saveTodayAvailability, localDateForTimezone },
+    { bookAppointment, cancelAppointment, doctorTodayQueue }] = await Promise.all([
+    import('../src/app.js'), import('../src/database/pool.js'),
+    import('../src/modules/admin/services/admin.service.js'),
+    import('../src/modules/doctors/services/doctor.service.js'),
+    import('../src/modules/appointments/appointment.service.js'),
+  ]);
+  const server = await new Promise(resolve => {
+    const listener = createApp().listen(0, '127.0.0.1', () => resolve(listener));
+  });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const suffix = Date.now();
+  const password = 'Booking-test-123!';
+  const users = [];
+  async function request(method, path, body, token) {
+    const response = await fetch(base + path, { method, headers: {
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    return { status: response.status, data: await response.json() };
+  }
+  async function account(name, role) {
+    const email = `${name}.${suffix}@example.invalid`;
+    const body = { email, password, full_name: name, role,
+      ...(role === 'DOCTOR' ? { specialization: 'General medicine',
+        license_number: String(suffix + users.length).slice(-9) } : {}) };
+    const registration = await request('POST', '/api/auth/register', body);
+    assert.equal(registration.status, 201, JSON.stringify(registration.data));
+    const id = registration.data.data.user.user_id;
+    users.push(id);
+    const token = (await request('POST', '/api/auth/login', { email, password })).data.data.access_token;
+    const endpoint = role === 'DOCTOR' ? '/api/doctors/profile' : '/api/patients/profile';
+    const profile = (await request('GET', endpoint, null, token)).data.data[role === 'DOCTOR' ? 'doctor' : 'patient'];
+    return { id, token, profile };
+  }
+  const details = {
+    full_name: 'Booking Doctor', specialization: 'Cardiology', qualifications: 'MBBS',
+    years_experience: 5, biography: 'In-person chamber consultations.',
+    chamber_name: 'Green Chamber', chamber_address: '12 Care Road', city: 'Dhaka',
+    practice_country: 'BD', practice_timezone: 'Asia/Dhaka',
+    consultation_start: '09:00', consultation_end: '17:00',
+    consultation_fee: '500.00', consultation_currency: 'BDT',
+  };
+  try {
+    const doctor = await account('bookingdoctor', 'DOCTOR');
+    const otherDoctor = await account('otherdoctor', 'DOCTOR');
+    const foreignDoctor = await account('foreigndoctor', 'DOCTOR');
+    const rejectedDoctor = await account('rejecteddoctor', 'DOCTOR');
+    const incompleteDoctor = await account('incompletdoctor', 'DOCTOR');
+    const pendingDoctor = await account('pendingdoctor', 'DOCTOR');
+    const unavailableDoctor = await account('unavailabledoctor', 'DOCTOR');
+    const patients = await Promise.all(['one', 'two', 'three', 'four'].map(name => account(name, 'PATIENT')));
+    const operator = (await query('INSERT INTO public.users(email) VALUES ($1) RETURNING id',
+      [`operator.${suffix}@example.invalid`])).rows[0];
+    users.push(operator.id);
+    await query("INSERT INTO public.profiles(user_id,full_name,role) VALUES ($1,'Operator','ADMIN')", [operator.id]);
+    await verifyEntity({ id: doctor.profile.id, entityType: 'DOCTOR', status: 'VERIFIED', adminUserId: operator.id });
+    await verifyEntity({ id: otherDoctor.profile.id, entityType: 'DOCTOR', status: 'VERIFIED', adminUserId: operator.id });
+    await verifyEntity({ id: foreignDoctor.profile.id, entityType: 'DOCTOR', status: 'VERIFIED', adminUserId: operator.id });
+    await verifyEntity({ id: rejectedDoctor.profile.id, entityType: 'DOCTOR', status: 'REJECTED', adminUserId: operator.id });
+    await verifyEntity({ id: incompleteDoctor.profile.id, entityType: 'DOCTOR', status: 'VERIFIED', adminUserId: operator.id });
+    await verifyEntity({ id: unavailableDoctor.profile.id, entityType: 'DOCTOR', status: 'VERIFIED', adminUserId: operator.id });
+    assert.equal((await request('PUT', '/api/doctors/profile', details, doctor.token)).status, 200);
+    assert.equal((await request('PUT', '/api/doctors/profile', {
+      ...details, full_name: 'Other Doctor',
+    }, otherDoctor.token)).status, 200);
+    assert.equal((await request('PUT', '/api/doctors/profile', {
+      ...details, full_name: 'Foreign Doctor', practice_country: 'US',
+      practice_timezone: 'America/New_York', consultation_currency: 'USD',
+    }, foreignDoctor.token)).status, 200);
+    assert.equal((await request('PUT', '/api/doctors/profile', details, rejectedDoctor.token)).status, 200);
+    assert.equal((await request('PUT', '/api/doctors/profile', details, pendingDoctor.token)).status, 200);
+    assert.equal((await request('PUT', '/api/doctors/profile', details, unavailableDoctor.token)).status, 200);
+    assert.equal((await request('GET', '/api/appointments/doctors', null, patients[0].token)).data.data.doctors.length, 0);
+    const today = localDateForTimezone('Asia/Dhaka');
+    const ten = new Date(`${today}T04:00:00.000Z`);
+    const early = new Date(`${today}T02:59:00.000Z`);
+    const late = new Date(`${today}T06:00:00.000Z`);
+    await saveTodayAvailability(doctor.id, { available: true, maxPatients: 2,
+      consultationStart: '09:00', consultationEnd: '17:00', localDate: today });
+    await saveTodayAvailability(otherDoctor.id, { available: true, maxPatients: 2,
+      consultationStart: '09:00', consultationEnd: '17:00', localDate: today });
+    await saveTodayAvailability(foreignDoctor.id, { available: true, maxPatients: 2,
+      consultationStart: '09:00', consultationEnd: '17:00',
+      localDate: localDateForTimezone('America/New_York') });
+    await saveTodayAvailability(rejectedDoctor.id, { available: false, maxPatients: 2,
+      consultationStart: '09:00', consultationEnd: '17:00', localDate: today });
+    await saveTodayAvailability(unavailableDoctor.id, { available: false, maxPatients: 2,
+      consultationStart: '09:00', consultationEnd: '17:00', localDate: today });
+    assert.equal((await request('POST', '/api/appointments', { doctor_id: doctor.profile.id,
+      local_date: today }, patients[0].token)).status, 400);
+    for (const patient of patients.slice(0, 3)) {
+      assert.equal((await request('PATCH', '/api/patients/profile/country', {
+        country_code: 'BD',
+      }, patient.token)).status, 200);
+    }
+    const discovery = await request('GET', '/api/appointments/doctors', null, patients[0].token);
+    assert.equal(discovery.status, 200, JSON.stringify(discovery.data));
+    assert.deepEqual(new Set(discovery.data.data.doctors.map(item => item.id)),
+      new Set([doctor.profile.id, otherDoctor.profile.id]));
+    assert.equal(discovery.data.data.doctors[0].remaining_capacity, 2);
+    await assert.rejects(bookAppointment(patients[0].id, doctor.profile.id, today, undefined, early),
+      error => error.statusCode === 409);
+    await assert.rejects(bookAppointment(patients[0].id, doctor.profile.id, today, undefined, late),
+      error => error.statusCode === 409);
+    await assert.rejects(bookAppointment(patients[3].id, doctor.profile.id, today, undefined, ten),
+      error => error.statusCode === 400);
+    await assert.rejects(bookAppointment(patients[0].id, rejectedDoctor.profile.id, today, undefined, ten),
+      error => error.statusCode === 404);
+    await assert.rejects(bookAppointment(patients[0].id, pendingDoctor.profile.id, today, undefined, ten),
+      error => error.statusCode === 404);
+    await assert.rejects(bookAppointment(patients[0].id, unavailableDoctor.profile.id, today, undefined, ten),
+      error => error.statusCode === 409);
+    await assert.rejects(bookAppointment(patients[0].id, incompleteDoctor.profile.id, today, undefined, ten),
+      error => error.statusCode === 404);
+    await assert.rejects(bookAppointment(patients[0].id, foreignDoctor.profile.id, today, undefined, ten),
+      error => error.statusCode === 403);
+    const first = await bookAppointment(patients[0].id, doctor.profile.id, today, undefined, ten);
+    assert.equal(first.queue_position, 1);
+    assert.equal((await request('GET', `/api/medical-records/${patients[0].profile.id}`, null, doctor.token)).status, 403);
+    assert.equal((await request('POST', '/api/doctors/prescriptions', {
+      patient_id: patients[0].profile.id, medicine: 'Test', dosage: 'One', instructions: 'Test',
+    }, doctor.token)).status, 403);
+    await assert.rejects(bookAppointment(patients[0].id, doctor.profile.id, today, undefined, ten),
+      error => error.statusCode === 409);
+    await assert.rejects(bookAppointment(patients[0].id, otherDoctor.profile.id, today, undefined, ten),
+      error => error.statusCode === 409);
+    const concurrent = await Promise.allSettled([patients[1], patients[2]].map(patient =>
+      bookAppointment(patient.id, doctor.profile.id, today, undefined, ten)));
+    assert.equal(concurrent.filter(item => item.status === 'fulfilled').length, 1);
+    assert.equal(concurrent.find(item => item.status === 'fulfilled').value.queue_position, 2);
+    await assert.rejects(saveTodayAvailability(doctor.id, { available: true, maxPatients: 1,
+      consultationStart: '09:00', consultationEnd: '17:00', localDate: today }),
+    error => error.statusCode === 409);
+    assert.equal((await doctorTodayQueue(doctor.id)).active_count, 2);
+    assert.equal((await doctorTodayQueue(otherDoctor.id)).appointments.length, 0);
+    await assert.rejects(cancelAppointment(patients[1].id, first.id), error => error.statusCode === 404);
+    assert.equal((await cancelAppointment(patients[0].id, first.id)).status, 'CANCELLED');
+    const third = await bookAppointment(patients[0].id, doctor.profile.id, today, undefined, ten);
+    assert.equal(third.queue_position, 3);
+    assert.deepEqual((await doctorTodayQueue(doctor.id)).appointments.map(item => item.queue_position), [1, 2, 3]);
+    assert.equal((await doctorTodayQueue(doctor.id)).remaining_capacity, 0);
+    const history = (await request('GET', '/api/appointments', null, patients[0].token)).data.data.appointments;
+    assert.equal(history.length, 2);
+    assert.deepEqual(new Set(history.map(item => item.status)), new Set(['BOOKED', 'CANCELLED']));
+    assert.equal((await request('GET', '/api/appointments', null, patients[1].token)).data.data.appointments.length <= 1, true);
+    assert.equal((await request('GET', '/api/doctors/queue/today', null, doctor.token)).data.data.queue.active_count, 2);
+    assert.equal((await request('GET', '/api/doctors/queue/today', null, otherDoctor.token)).data.data.queue.appointments.length, 0);
+  } finally {
+    for (const id of users.reverse()) await query('DELETE FROM public.users WHERE id=$1', [id]);
+    await new Promise(resolve => server.close(resolve));
+    await closeDatabase();
+  }
+});

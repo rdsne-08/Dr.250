@@ -34,4 +34,14 @@ export const patientService = Object.freeze({
   revokeDoctorAccess: async sessionId => (await apiClient.patch(
     `/api/sessions/${sessionId}/revoke`, {},
   )).session,
+  getCountries: async () => (await apiClient.get('/api/patients/countries')).countries ?? [],
+  updateCountry: async countryCode => (await apiClient.patch('/api/patients/profile/country', {
+    country_code: countryCode,
+  })).patient,
+  discoverDoctors: async () => apiClient.get('/api/appointments/doctors'),
+  getAppointments: async () => (await apiClient.get('/api/appointments')).appointments ?? [],
+  bookAppointment: async (doctorId, localDate) => (await apiClient.post('/api/appointments', {
+    doctor_id: doctorId, local_date: localDate,
+  })).appointment,
+  cancelAppointment: async id => (await apiClient.post(`/api/appointments/${id}/cancel`, {})).appointment,
 });
