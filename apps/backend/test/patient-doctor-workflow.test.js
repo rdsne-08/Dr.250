@@ -19,6 +19,7 @@ test('patient grant allows history reads, while prescribing requires a consultat
   });
   const base = `http://127.0.0.1:${server.address().port}`;
   const suffix = `${Date.now()}${Math.floor(Math.random() * 1e6)}`;
+  const licenseNumber = String(Date.now()).slice(-9) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
   const users = [];
   let patientId;
   let doctorId;
@@ -47,7 +48,7 @@ test('patient grant allows history reads, while prescribing requires a consultat
     const patientToken = await account('PATIENT');
     const otherPatientToken = await account('PATIENT', { email: `otherpatient.${suffix}@example.invalid` });
     const doctorToken = await account('DOCTOR', {
-      specialization: 'General', license_number: '123456789',
+      specialization: 'General', license_number: licenseNumber,
     });
     patientId = (await request('GET', '/api/patients/profile', null, patientToken)).data.data.patient.id;
     const otherPatientId = (await request('GET', '/api/patients/profile', null, otherPatientToken)).data.data.patient.id;
@@ -103,7 +104,7 @@ test('patient grant allows history reads, while prescribing requires a consultat
     await query(`INSERT INTO public.profiles (user_id, full_name, role)
       VALUES ($1, 'Workflow operator', 'ADMIN')`, [operatorId]);
     await verifyDemoDoctor({ doctorEmail: `doctor.${suffix}@example.invalid`,
-      licenseNumber: '123456789', operatorEmail: `operator.${suffix}@example.invalid` });
+      licenseNumber, operatorEmail: `operator.${suffix}@example.invalid` });
 
     const beforeGrant = await request('GET', `/api/medical-records/${patientId}`, null, doctorToken);
     assert.equal(beforeGrant.status, 403);

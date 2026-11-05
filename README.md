@@ -1,6 +1,6 @@
 # Dr.250
 
-Dr.250 is a Patient–Doctor application with an Admin doctor-review workspace. Patients maintain a self-reported health profile, book verified doctors, request care, and view completed visits, prescriptions, and access history. Doctors can read patient history only with active patient consent and can save prescriptions during an accepted consultation.
+Dr.250 is a patient, doctor, and admin healthcare application. Its objective is to let patients keep their health history, book verified doctors, and control access to their records while giving doctors a traceable consultation and prescription workflow.
 
 ## Features and screenshots
 
@@ -13,11 +13,11 @@ The screenshots below show the running application with fictional accounts and m
 
 | Patient dashboard | Doctor dashboard |
 | --- | --- |
-| ![Patient dashboard with fictional history, prescription and doctor grant](docs/images/patient-dashboard.jpg) | ![Doctor dashboard with an authorized fictional patient](docs/images/doctor-dashboard.jpg) |
+| ![Patient dashboard with fictional history, prescription and doctor grant](docs/screenshots/patient-dashboard.jpg) | ![Doctor dashboard with an authorized fictional patient](docs/screenshots/doctor-dashboard.jpg) |
 
 | Medical history | Doctor authorization | Prescriptions |
 | --- | --- | --- |
-| ![Fictional medical record](docs/images/medical-history.jpg) | ![Active doctor grant with revoke control](docs/images/doctor-access.jpg) | ![Fictional prescription in patient history](docs/images/prescriptions.jpg) |
+| ![Fictional medical record](docs/screenshots/medical-history.jpg) | ![Active doctor grant with revoke control](docs/screenshots/doctor-access.jpg) | ![Fictional prescription in patient history](docs/screenshots/prescriptions.jpg) |
 
 ## Run locally
 
@@ -170,3 +170,48 @@ Release verification on 26 October 2026: the database-backed patient and doctor 
 - `database/retired-migrations`: preserved historical SQL that is excluded from
   fresh migrations. The old embedding migration stays archived so its history
   is available without activating the removed AI workflow.
+
+## Technology and architecture
+
+The frontend uses React, Vite, and Tailwind CSS. The Node.js and Express API uses PostgreSQL 16 with numbered SQL migrations. Docker Compose runs the local frontend, backend, and database. Existing pgvector data and its HNSW index remain in the historical database; the current patient and doctor workflow does not depend on AI features.
+
+```mermaid
+flowchart LR
+  Browser[Patient, Doctor, Admin browser] --> UI[React frontend]
+  UI --> API[Express API]
+  API --> DB[(PostgreSQL)]
+  API --> Auth[Local and legacy authentication]
+  DB --> Audit[Audit records]
+```
+
+```mermaid
+flowchart LR
+  Register[Patient registers] --> Profile[Health profile and records]
+  Profile --> Book[Book verified doctor]
+  Book --> Grant[Grant record access]
+  Grant --> Visit[Doctor consultation]
+  Visit --> Rx[Prescription and visit history]
+  Grant --> Revoke[Patient revokes access]
+```
+
+```mermaid
+flowchart TD
+  Request[Authenticated request] --> Role{Role}
+  Role -->|Patient| Own[Own profile, records, bookings, grants]
+  Role -->|Doctor| Verified{Verified and consent active?}
+  Verified -->|Yes| Care[Authorized history and consultation]
+  Verified -->|No| Deny[Access denied]
+  Role -->|Admin| Review[Doctor application review and audit]
+```
+
+## Data and security
+
+`database/migrations/` is the forward-only schema history. The migration ledger is `dr250_meta.schema_migrations`; Migration 022 adds doctor booking start/end times and accepts a patient-reported `Unknown` blood group. Patient and doctor identities are stored in `users`, `profiles`, and role tables. Medical records, prescriptions, appointments, consultations, and access sessions have separate tables. See [database/README.md](database/README.md) for migration and disposable test database guidance.
+
+Local passwords are stored as hashes in the private schema. Protected API routes require authentication and enforce role, ownership, verified doctor status, and active patient consent. Patient revocation closes subsequent provider access. Doctor verification and provider record reads are audited. Production requires HTTPS, a persistent PostgreSQL service, private environment secrets, and an exact `CORS_ORIGIN` matching the frontend origin. Never expose database credentials or the service role key to Vite client variables.
+
+## Verification and future scope
+
+On 5 November 2026, the verified backup was restored into a disposable database and Migration 022 passed there before being applied to the existing `sasthosetu` database. The migration ledger records it once; users (14), patients (8), doctors (4), and medical records (4) matched the pre-migration baseline. Backend isolated tests passed 68 with 6 database-dependent skips; selected disposable database integration tests passed 12/12. Frontend tests passed 15/15, ESLint passed, and the production build succeeded. Browser end-to-end and public deployment status must be reported separately rather than inferred from these tests.
+
+Future work can include operational monitoring, accessibility review, and scheduled backup verification after a production host is configured. These are outside the current patient, doctor, and admin release scope.
