@@ -1,4 +1,4 @@
-import { pool, query } from '../../../database/pool.js';
+import { pool, query, withTransaction } from '../../../database/pool.js';
 import { HttpError } from '../../../middleware/http-error.js';
 import { authorizePatientDataAccess } from '../../sessions/services/access.service.js';
 import { logProviderRead } from '../../sessions/services/audit.service.js';
@@ -15,11 +15,19 @@ export async function getHealthProfile(user, patientId, database = pool) {
   ]);
   await logProviderRead(user, patientId, 'HEALTH_PROFILE_READ', database,
     { type: 'HEALTH_PROFILE', id: patientId });
-  return { profile: profile.rows[0] ?? null, measurements: measurements.rows };
+  const patient = await query('SELECT blood_group FROM public.patients WHERE id=$1', [patientId], database);
+  return { profile: profile.rows[0] ?? null, blood_group: patient.rows[0]?.blood_group ?? null,
+    measurements: measurements.rows };
 }
 
 export async function saveOwnHealthProfile(userId, details, database = pool) {
-  const result = await query(`INSERT INTO public.patient_health_profiles
+  return withTransaction(async transaction => {
+    const patient = await transaction.query(`UPDATE public.patients AS patient SET blood_group=$2
+      FROM public.profiles AS profile WHERE patient.profile_id=profile.id
+        AND profile.user_id=$1 AND profile.role='PATIENT' RETURNING patient.id`,
+    [userId, details.bloodGroup]);
+    if (!patient.rows[0]) throw new HttpError(404, 'Patient profile not found.');
+    const result = await transaction.query(`INSERT INTO public.patient_health_profiles
     (patient_id,conditions,allergies,current_medications,medical_history,notes)
     SELECT patient.id,$2,$3,$4,$5,$6 FROM public.patients AS patient
     JOIN public.profiles AS profile ON profile.id=patient.profile_id
@@ -28,10 +36,10 @@ export async function saveOwnHealthProfile(userId, details, database = pool) {
       allergies=EXCLUDED.allergies,current_medications=EXCLUDED.current_medications,
       medical_history=EXCLUDED.medical_history,notes=EXCLUDED.notes
     RETURNING patient_id,conditions,allergies,current_medications,medical_history,notes,updated_at`,
-  [userId, details.conditions, details.allergies, details.current_medications,
-    details.medical_history, details.notes], database);
-  if (!result.rows[0]) throw new HttpError(404, 'Patient profile not found.');
-  return result.rows[0];
+    [userId, details.conditions, details.allergies, details.current_medications,
+      details.medical_history, details.notes]);
+    return { ...result.rows[0], blood_group: details.bloodGroup };
+  }, database);
 }
 
 export async function addOwnMeasurement(userId, details, database = pool) {

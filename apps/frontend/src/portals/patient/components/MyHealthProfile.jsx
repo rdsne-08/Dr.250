@@ -15,10 +15,11 @@ const measurementFields = [
   ['pulse_bpm', 'Pulse (beats/min)', 20, 250], ['weight_kg', 'Weight (kg)', 1, 500],
 ];
 
-export function MyHealthProfile() {
+export function MyHealthProfile({ onSaved }) {
   const { data, error: loadError, isLoading, reload } = useAsyncResource(patientService.getHealthProfile);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profile, setProfile] = useState(blankProfile);
+  const [bloodGroup, setBloodGroup] = useState('');
   const [measurement, setMeasurement] = useState(blankMeasurement);
   const [editingMeasurement, setEditingMeasurement] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -27,6 +28,7 @@ export function MyHealthProfile() {
 
   function startProfile() {
     setProfile(Object.fromEntries(profileFields.map(([key]) => [key, data?.profile?.[key] ?? ''])));
+    setBloodGroup(data?.blood_group ?? '');
     setError(''); setSuccess(''); setEditingProfile(true);
   }
   function startMeasurement(item = null) {
@@ -37,8 +39,9 @@ export function MyHealthProfile() {
   async function saveProfile(event) {
     event.preventDefault(); setSaving(true); setError(''); setSuccess('');
     try {
-      await patientService.saveHealthProfile(profile);
-      setEditingProfile(false); setSuccess('Self-reported health profile saved.'); reload();
+      await patientService.saveHealthProfile({ ...profile, blood_group: bloodGroup || null });
+      setEditingProfile(false); setSuccess('Patient-reported health profile saved.');
+      await Promise.all([reload(), onSaved?.()]);
     } catch (failure) { setError(failure.message || 'Could not save health profile.'); }
     finally { setSaving(false); }
   }
@@ -75,6 +78,14 @@ export function MyHealthProfile() {
         {!editingProfile && <Button size="sm" variant="outline" onClick={startProfile}>{data.profile ? 'Edit' : 'Add'}</Button>}
       </div>
       {editingProfile ? <form className="mt-4 space-y-4" onSubmit={saveProfile}>
+        <label className="block text-sm font-semibold text-ink-800">Blood Group (patient-reported)
+          <select className="mt-2 w-full rounded-2xl border border-ink-100 bg-white p-4" value={bloodGroup}
+            onChange={event => setBloodGroup(event.target.value)}>
+            <option value="">Not recorded</option>
+            {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'].map(value =>
+              <option key={value} value={value}>{value.replace('-', '−')}</option>)}
+          </select>
+        </label>
         {profileFields.map(([key, label]) => <label key={key} className="block text-sm font-semibold text-ink-800">{label}
           <textarea className="mt-2 min-h-20 w-full rounded-2xl border border-ink-100 p-4"
             maxLength={key === 'medical_history' || key === 'notes' ? 5000 : 3000}
@@ -82,7 +93,10 @@ export function MyHealthProfile() {
         </label>)}
         <div className="flex gap-2"><Button type="submit" loading={saving}>Save</Button>
           <Button type="button" variant="secondary" disabled={saving} onClick={() => setEditingProfile(false)}>Cancel</Button></div>
-      </form> : <dl className="mt-4 grid gap-4 sm:grid-cols-2">{profileFields.map(([key, label]) =>
+      </form> : <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div><dt className="text-sm font-semibold text-ink-700">Blood Group (patient-reported)</dt>
+          <dd className="mt-1 text-sm text-ink-500">{data.blood_group?.replace('-', '−') || 'Not recorded'}</dd></div>
+        {profileFields.map(([key, label]) =>
         <div key={key}><dt className="text-sm font-semibold text-ink-700">{label}</dt>
           <dd className="mt-1 whitespace-pre-wrap text-sm text-ink-500">{data.profile?.[key] || 'Not reported'}</dd></div>)}</dl>}
       <div className="mt-8 flex items-center justify-between gap-3 border-t border-ink-100 pt-6">

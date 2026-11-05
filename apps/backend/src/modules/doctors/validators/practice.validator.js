@@ -72,7 +72,7 @@ export function parseProfessionalProfile(input) {
 
 export function parseTodayAvailability(input) {
   const body = object(input);
-  allowed(body, ['available', 'max_patients', 'consultation_start', 'consultation_end', 'local_date']);
+  allowed(body, ['available', 'max_patients', 'consultation_start', 'consultation_end', 'booking_start', 'booking_end', 'local_date']);
   if (body.local_date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(body.local_date)) {
     fail('local_date', 'must be YYYY-MM-DD');
   }
@@ -88,8 +88,13 @@ export function parseTodayAvailability(input) {
   }
   if (Boolean(start) !== Boolean(end)) fail('Consultation hours', 'must include both start and end');
   hours(start, end);
+  const bookingStart = time(body.booking_start, 'booking_start', true);
+  const bookingEnd = time(body.booking_end, 'booking_end', true);
+  if (Boolean(bookingStart) !== Boolean(bookingEnd)) fail('Booking window', 'must include both start and end');
+  if (bookingStart && bookingStart >= bookingEnd) fail('Booking window end', 'must be later than start');
+  if (body.available && !bookingStart) fail('Available today', 'requires booking hours');
   return { available: body.available, localDate: body.local_date, maxPatients: capacity,
-    consultationStart: start, consultationEnd: end };
+    consultationStart: start, consultationEnd: end, bookingStart, bookingEnd };
 }
 
 export function validateProfessionalProfile(request, _response, next) {

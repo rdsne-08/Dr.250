@@ -20,9 +20,14 @@ function number(body, key, min, max, integer = true) {
 
 export function parseHealthProfile(body) {
   const keys = ['conditions', 'allergies', 'current_medications', 'medical_history', 'notes'];
-  object(body, keys);
-  if (keys.some(key => !Object.hasOwn(body, key))) fail('Provide all health profile fields.');
-  return Object.fromEntries(keys.map(key => [key, text(body, key, key === 'medical_history' || key === 'notes' ? 5000 : 3000)]));
+  object(body, [...keys, 'blood_group']);
+  if ([...keys, 'blood_group'].some(key => !Object.hasOwn(body, key))) fail('Provide all health profile fields.');
+  const bloodGroup = body.blood_group;
+  if (bloodGroup !== null && !['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'].includes(bloodGroup)) {
+    fail('blood_group must be a supported value.');
+  }
+  return { ...Object.fromEntries(keys.map(key => [key, text(body, key, key === 'medical_history' || key === 'notes' ? 5000 : 3000)])),
+    bloodGroup };
 }
 
 export function parseHealthMeasurement(body) {

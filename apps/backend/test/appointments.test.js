@@ -90,19 +90,21 @@ test('same-day booking enforces identity, country, window, capacity and permanen
     assert.equal((await request('GET', '/api/appointments/doctors', null, patients[0].token)).data.data.doctors.length, 0);
     const today = localDateForTimezone('Asia/Dhaka');
     const ten = new Date(`${today}T04:00:00.000Z`);
-    const early = new Date(`${today}T02:59:00.000Z`);
-    const late = new Date(`${today}T06:00:00.000Z`);
+    const early = new Date(`${today}T01:59:00.000Z`);
+    const late = new Date(`${today}T05:00:00.000Z`);
     await saveTodayAvailability(doctor.id, { available: true, maxPatients: 2,
       consultationStart: '09:00', consultationEnd: '17:00', localDate: today });
+    await saveTodayAvailability(doctor.id, { available: true, maxPatients: 2,
+      consultationStart: '09:00', consultationEnd: '17:00', bookingStart: '08:00', bookingEnd: '11:00', localDate: today });
     await saveTodayAvailability(otherDoctor.id, { available: true, maxPatients: 2,
-      consultationStart: '09:00', consultationEnd: '17:00', localDate: today });
+      consultationStart: '09:00', consultationEnd: '17:00', bookingStart: '09:00', bookingEnd: '12:00', localDate: today });
     await saveTodayAvailability(foreignDoctor.id, { available: true, maxPatients: 2,
-      consultationStart: '09:00', consultationEnd: '17:00',
+      consultationStart: '09:00', consultationEnd: '17:00', bookingStart: '09:00', bookingEnd: '12:00',
       localDate: localDateForTimezone('America/New_York') });
     await saveTodayAvailability(rejectedDoctor.id, { available: false, maxPatients: 2,
       consultationStart: '09:00', consultationEnd: '17:00', localDate: today });
     await saveTodayAvailability(unavailableDoctor.id, { available: false, maxPatients: 2,
-      consultationStart: '09:00', consultationEnd: '17:00', localDate: today });
+      consultationStart: '09:00', consultationEnd: '17:00', bookingStart: '09:00', bookingEnd: '12:00', localDate: today });
     assert.equal((await request('POST', '/api/appointments', { doctor_id: doctor.profile.id,
       local_date: today }, patients[0].token)).status, 400);
     for (const patient of patients.slice(0, 3)) {
@@ -110,11 +112,16 @@ test('same-day booking enforces identity, country, window, capacity and permanen
         country_code: 'BD',
       }, patient.token)).status, 200);
     }
+    await query('UPDATE public.doctor_daily_availability SET booking_start=NULL, booking_end=NULL WHERE doctor_id=$1 AND local_date=$2', [doctor.profile.id, today]);
+    await assert.rejects(bookAppointment(patients[0].id, doctor.profile.id, today, undefined, ten),
+      error => error.statusCode === 409 && /not configured/.test(error.message));
+    await query("UPDATE public.doctor_daily_availability SET booking_start='08:00', booking_end='11:00' WHERE doctor_id=$1 AND local_date=$2", [doctor.profile.id, today]);
     const discovery = await request('GET', '/api/appointments/doctors', null, patients[0].token);
     assert.equal(discovery.status, 200, JSON.stringify(discovery.data));
     assert.deepEqual(new Set(discovery.data.data.doctors.map(item => item.id)),
       new Set([doctor.profile.id, otherDoctor.profile.id]));
     assert.equal(discovery.data.data.doctors[0].remaining_capacity, 2);
+    assert.ok(discovery.data.data.doctors.some(item => item.booking_start === '08:00' && item.booking_end === '11:00'));
     await assert.rejects(bookAppointment(patients[0].id, doctor.profile.id, today, undefined, early),
       error => error.statusCode === 409);
     await assert.rejects(bookAppointment(patients[0].id, doctor.profile.id, today, undefined, late),
@@ -135,7 +142,7 @@ test('same-day booking enforces identity, country, window, capacity and permanen
     assert.equal(first.queue_position, 1);
     assert.equal((await request('PUT', '/api/patients/health-profile', {
       conditions: 'Asthma', allergies: 'Pollen', current_medications: 'Inhaler',
-      medical_history: 'Childhood symptoms', notes: 'Self-reported',
+      medical_history: 'Childhood symptoms', notes: 'Self-reported', blood_group: 'A+',
     }, patients[0].token)).status, 200);
     assert.equal((await request('GET', `/api/doctors/patients/${patients[0].profile.id}/health-profile`,
       null, doctor.token)).status, 403);
@@ -152,7 +159,7 @@ test('same-day booking enforces identity, country, window, capacity and permanen
     assert.equal(concurrent.filter(item => item.status === 'fulfilled').length, 1);
     assert.equal(concurrent.find(item => item.status === 'fulfilled').value.queue_position, 2);
     await assert.rejects(saveTodayAvailability(doctor.id, { available: true, maxPatients: 1,
-      consultationStart: '09:00', consultationEnd: '17:00', localDate: today }),
+      consultationStart: '09:00', consultationEnd: '17:00', bookingStart: '09:00', bookingEnd: '12:00', localDate: today }),
     error => error.statusCode === 409);
     assert.equal((await doctorTodayQueue(doctor.id)).active_count, 2);
     assert.equal((await doctorTodayQueue(otherDoctor.id)).appointments.length, 0);

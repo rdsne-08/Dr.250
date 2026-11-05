@@ -54,10 +54,13 @@ test('patient grant allows history reads, while prescribing requires a consultat
     doctorId = (await request('GET', '/api/doctors/profile', null, doctorToken)).data.data.doctor.id;
     assert.equal((await request('GET', '/api/doctors/patients', null, doctorToken)).status, 403);
     const healthDetails = { conditions: 'Asthma', medical_history: 'Childhood hospitalization',
-      allergies: 'Penicillin', current_medications: 'Inhaler', notes: 'Exercise can trigger symptoms' };
+      allergies: 'Penicillin', current_medications: 'Inhaler', notes: 'Exercise can trigger symptoms', blood_group: 'AB-'  };
     const firstHealth = await request('PUT', '/api/patients/health-profile', healthDetails, patientToken);
     assert.equal(firstHealth.status, 200, JSON.stringify(firstHealth.data));
     assert.equal(firstHealth.data.data.profile.patient_id, patientId);
+    assert.equal((await request('PUT', '/api/patients/health-profile',
+      { ...healthDetails, blood_group: 'Z+' }, patientToken)).status, 400);
+    assert.equal((await request('PUT', '/api/patients/health-profile', healthDetails, doctorToken)).status, 403);
     const measurement = { measured_on: new Date().toISOString().slice(0, 10),
       systolic_mmhg: 120, diastolic_mmhg: 80, pulse_bpm: 72, weight_kg: 65.5 };
     const added = await request('POST', '/api/patients/health-profile/measurements', measurement, patientToken);
@@ -85,6 +88,8 @@ test('patient grant allows history reads, while prescribing requires a consultat
     })).data.data.access_token;
     const persisted = (await request('GET', '/api/patients/health-profile', null, refreshedToken)).data.data.health;
     assert.equal(persisted.profile.allergies, 'Penicillin and pollen');
+    assert.equal(persisted.blood_group, 'AB-');
+    assert.equal((await request('GET', '/api/patients/profile', null, refreshedToken)).data.data.patient.blood_group, 'AB-');
     assert.equal(persisted.measurements[0].pulse_bpm, 75);
 
     const record = await request('POST', '/api/medical-records', {
@@ -114,6 +119,7 @@ test('patient grant allows history reads, while prescribing requires a consultat
     const doctorHealth = await request('GET', `/api/doctors/patients/${patientId}/health-profile`, null, doctorToken);
     assert.equal(doctorHealth.status, 200, JSON.stringify(doctorHealth.data));
     assert.equal(doctorHealth.data.data.health.profile.conditions, 'Asthma');
+    assert.equal(doctorHealth.data.data.health.blood_group, 'AB-');
     assert.equal((await request('GET', `/api/doctors/patients/${otherPatientId}/health-profile`, null, doctorToken)).status, 403);
     const withoutConsultation = await request('POST', '/api/doctors/prescriptions', {
       patient_id: patientId, medicine: 'Example medicine', dosage: 'Once daily',

@@ -4,7 +4,7 @@ import { Avatar, Badge, Card } from '../../../components/ui/index.js';
 
 export function PatientWelcome({ copy, patient }) {
   const summary = [
-    { id: 'bloodGroup', icon: Droplets, value: patient.bloodGroup },
+    { id: 'bloodGroup', icon: Droplets, value: patient.bloodGroup, note: 'Patient-reported' },
     { id: 'medicines', icon: Pill, value: patient.activeMedicines },
     { id: 'nextCheckup', icon: CalendarDays, value: patient.nextCheckup || copy.welcome.unavailable },
   ];
@@ -41,7 +41,7 @@ export function PatientWelcome({ copy, patient }) {
             {copy.welcome.summaryLabel}
           </p>
           <div className="grid gap-3 sm:grid-cols-3">
-            {summary.map(({ icon: Icon, id, value }) => (
+            {summary.map(({ icon: Icon, id, value, note }) => (
               <div key={id} className="flex items-center gap-3 rounded-2xl bg-canvas px-4 py-3.5">
                 <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-health-700 shadow-card">
                   <Icon className="size-5" aria-hidden="true" />
@@ -49,6 +49,7 @@ export function PatientWelcome({ copy, patient }) {
                 <div>
                   <p className="text-xs font-medium text-ink-500">{copy.welcome[id]}</p>
                   <p className="mt-0.5 font-bold text-ink-900">{value}</p>
+                  {note && <p className="text-xs text-ink-500">{note}</p>}
                 </div>
               </div>
             ))}

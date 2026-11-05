@@ -30,6 +30,8 @@ export async function discoverDoctors(userId, database = pool) {
       availability.local_date::text AS local_date,
       to_char(availability.consultation_start,'HH24:MI') AS consultation_start,
       to_char(availability.consultation_end,'HH24:MI') AS consultation_end,
+      to_char(availability.booking_start,'HH24:MI') AS booking_start,
+      to_char(availability.booking_end,'HH24:MI') AS booking_end,
       availability.max_patients,
       count(appointment.id)::int AS booked_count
     FROM public.doctors AS doctor
@@ -68,11 +70,6 @@ export async function bookAppointment(userId, doctorId, expectedDate, database =
     if (doctor.practice_country !== patient.country_code) {
       throw new HttpError(403, 'Appointments require the same practice country.');
     }
-    const localTime = new Intl.DateTimeFormat('en-GB', { timeZone: doctor.practice_timezone,
-      hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(at);
-    if (localTime < '09:00' || localTime >= '12:00') {
-      throw new HttpError(409, 'Booking is open from 9:00 AM until noon in the doctor’s practice timezone.');
-    }
     const localDate = localDateForTimezone(doctor.practice_timezone, at);
     if (expectedDate && expectedDate !== localDate) {
       throw new HttpError(409, 'The chamber date changed. Refresh the doctor list.');
@@ -81,6 +78,16 @@ export async function bookAppointment(userId, doctorId, expectedDate, database =
       WHERE doctor_id=$1 AND local_date=$2 AND practice_timezone=$3 FOR UPDATE`,
     [doctorId, localDate, doctor.practice_timezone])).rows[0];
     if (!availability?.available) throw new HttpError(409, 'Doctor is unavailable today.');
+    if (!availability.booking_start || !availability.booking_end) {
+      throw new HttpError(409, 'Doctor has not configured booking hours today.');
+    }
+    const localTime = new Intl.DateTimeFormat('en-GB', { timeZone: doctor.practice_timezone,
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(at);
+    const start = availability.booking_start.slice(0, 5);
+    const end = availability.booking_end.slice(0, 5);
+    if (localTime < start || localTime >= end) {
+      throw new HttpError(409, `Booking is open ${start}–${end} in the doctor's practice timezone.`);
+    }
     const counts = (await transaction.query(`SELECT count(*) FILTER (WHERE status='BOOKED')::int AS active,
       coalesce(max(queue_position),0)::int AS last_position
       FROM public.appointments WHERE doctor_id=$1 AND local_date=$2`, [doctorId, localDate])).rows[0];
@@ -128,6 +135,8 @@ export async function patientAppointments(userId, database = pool) {
     profile.full_name AS doctor_name, doctor.specialization,
     doctor.chamber_name, doctor.chamber_address, doctor.city, doctor.practice_country,
     coalesce(availability.practice_timezone,doctor.practice_timezone) AS practice_timezone,
+    to_char(availability.booking_start,'HH24:MI') AS booking_start,
+    to_char(availability.booking_end,'HH24:MI') AS booking_end,
     to_char(availability.consultation_start,'HH24:MI') AS consultation_start,
     to_char(availability.consultation_end,'HH24:MI') AS consultation_end,
     coalesce(jsonb_agg(jsonb_build_object('id',prescription.id,'medicine',prescription.medicine,
@@ -159,6 +168,8 @@ export async function doctorTodayQueue(userId, database = pool, at = new Date())
   if (!doctor.practice_timezone) return { local_date: null, availability: null, appointments: [] };
   const localDate = localDateForTimezone(doctor.practice_timezone, at);
   const availability = (await query(`SELECT available, max_patients,
+    to_char(booking_start,'HH24:MI') AS booking_start,
+    to_char(booking_end,'HH24:MI') AS booking_end,
     to_char(consultation_start,'HH24:MI') AS consultation_start,
     to_char(consultation_end,'HH24:MI') AS consultation_end
     FROM public.doctor_daily_availability

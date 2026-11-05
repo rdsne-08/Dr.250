@@ -80,7 +80,7 @@ export function PatientDashboard() {
     description={error?.message || 'Please try again.'} actionLabel="Retry" onRetry={reload} />;
 
   const patient = { id: data.patient.id, name: data.patient.full_name,
-    bloodGroup: data.patient.blood_group || text.welcome.unavailable,
+    bloodGroup: data.patient.blood_group?.replace('-', '−') || text.welcome.unavailable,
     activeMedicines: String(data.prescriptions.length),
     nextCheckup: String(data.records.length) };
   const events = [
@@ -116,7 +116,7 @@ export function PatientDashboard() {
           </a>)}
       </div>
       <PatientCountry patient={data.patient} onSaved={reload} />
-      <MyHealthProfile />
+      <MyHealthProfile onSaved={reload} />
       <FindDoctor key={`${data.patient.country_code}:${doctorRefresh}`} patient={data.patient}
         onBooked={() => setAppointmentRefresh(value => value + 1)} />
       <MyAppointment key={appointmentRefresh} onChanged={() => setDoctorRefresh(value => value + 1)} />

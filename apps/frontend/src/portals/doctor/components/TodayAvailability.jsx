@@ -8,7 +8,8 @@ import { doctorService } from '../../../services/doctorService.js';
 export function TodayAvailability({ doctor }) {
   const { data, error: loadError, isLoading, reload } = useAsyncResource(doctorService.getTodayAvailability);
   const [saved, setSaved] = useState(null);
-  const [form, setForm] = useState({ available: false, max_patients: '', consultation_start: '', consultation_end: '' });
+  const [form, setForm] = useState({ available: false, max_patients: '', consultation_start: '', consultation_end: '',
+    booking_start: '', booking_end: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -25,7 +26,8 @@ export function TodayAvailability({ doctor }) {
     setForm({ available: data.available,
       max_patients: data.max_patients ?? '',
       consultation_start: data.consultation_start ?? doctor.consultation_start ?? '',
-      consultation_end: data.consultation_end ?? doctor.consultation_end ?? '' });
+      consultation_end: data.consultation_end ?? doctor.consultation_end ?? '',
+      booking_start: data.booking_start ?? '', booking_end: data.booking_end ?? '' });
   }, [data, doctor.consultation_start, doctor.consultation_end]);
 
   async function save(event) {
@@ -37,6 +39,12 @@ export function TodayAvailability({ doctor }) {
       && form.consultation_start >= form.consultation_end) {
       setError('Consultation end time must be later than start time.'); return;
     }
+    if (form.available && (!form.booking_start || !form.booking_end)) {
+      setError('Booking window start and end are required when available.'); return;
+    }
+    if (form.booking_start && form.booking_end && form.booking_start >= form.booking_end) {
+      setError('Booking window end must be later than start.'); return;
+    }
     setSaving(true); setError(''); setSuccess('');
     try {
       const updated = await doctorService.saveTodayAvailability({
@@ -45,6 +53,7 @@ export function TodayAvailability({ doctor }) {
         max_patients: form.max_patients === '' ? null : Number(form.max_patients),
         consultation_start: form.consultation_start || null,
         consultation_end: form.consultation_end || null,
+        booking_start: form.booking_start || null, booking_end: form.booking_end || null,
       });
       setSaved(updated); setSuccess('Today’s availability saved.');
     } catch (failure) {
@@ -72,6 +81,8 @@ export function TodayAvailability({ doctor }) {
           ? `${current.consultation_start}–${current.consultation_end}` : 'Not set for today'}</p>
         <p><strong>Maximum patients:</strong> {current.configured && current.max_patients !== null
           ? current.max_patients : 'Not set for today'}</p>
+        <p><strong>Booking window:</strong> {current.booking_start && current.booking_end
+          ? `${current.booking_start}–${current.booking_end}` : 'Not configured'}</p>
       </div>
       {!doctor.practice_timezone && <p className="mt-4 text-sm text-amber-800">Save your chamber’s time zone in Professional Profile first.</p>}
       {!canEnable && <p className="mt-4 text-sm text-amber-800">Only verified doctors with a complete professional profile can enable availability.</p>}
@@ -90,6 +101,10 @@ export function TodayAvailability({ doctor }) {
           onChange={event => setForm(value => ({ ...value, consultation_start: event.target.value }))} />
         <Input label="Consultation end" type="time" required={form.available} value={form.consultation_end}
           onChange={event => setForm(value => ({ ...value, consultation_end: event.target.value }))} />
+        <Input label="Booking Window Start" type="time" required={form.available} value={form.booking_start}
+          onChange={event => setForm(value => ({ ...value, booking_start: event.target.value }))} />
+        <Input label="Booking Window End" type="time" required={form.available} value={form.booking_end}
+          onChange={event => setForm(value => ({ ...value, booking_end: event.target.value }))} />
         <Button className="sm:col-span-3 sm:w-fit" type="submit" loading={saving} disabled={!doctor.practice_timezone}>
           Save Today’s Availability</Button>
       </form>

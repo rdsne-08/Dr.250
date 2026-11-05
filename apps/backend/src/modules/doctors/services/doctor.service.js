@@ -98,18 +98,21 @@ export async function getTodayAvailability(userId, database = pool, at = new Dat
   const doctor = await findDoctorByUserId(userId, database);
   if (!doctor) throw new HttpError(404, 'Doctor profile not found.');
   if (!doctor.practice_timezone) return { local_date: null, practice_timezone: null, configured: false,
-    available: false, max_patients: null, consultation_start: null, consultation_end: null };
+    available: false, max_patients: null, consultation_start: null, consultation_end: null,
+    booking_start: null, booking_end: null };
   const localDate = localDateForTimezone(doctor.practice_timezone, at);
   const result = await query(`SELECT doctor_id, local_date::text AS local_date, practice_timezone,
       available, max_patients, to_char(consultation_start,'HH24:MI') AS consultation_start,
-      to_char(consultation_end,'HH24:MI') AS consultation_end, updated_at
+      to_char(consultation_end,'HH24:MI') AS consultation_end,
+      to_char(booking_start,'HH24:MI') AS booking_start,
+      to_char(booking_end,'HH24:MI') AS booking_end, updated_at
     FROM public.doctor_daily_availability
     WHERE doctor_id=$1 AND local_date=$2 AND practice_timezone=$3`,
   [doctor.id, localDate, doctor.practice_timezone], database);
   return result.rows[0] ? { ...result.rows[0], configured: true } : {
     local_date: localDate, practice_timezone: doctor.practice_timezone,
     configured: false, available: false, max_patients: null,
-    consultation_start: null, consultation_end: null,
+    consultation_start: null, consultation_end: null, booking_start: null, booking_end: null,
   };
 }
 
@@ -118,13 +121,13 @@ export async function saveTodayAvailability(userId, details, database = pool, at
     const doctor = (await transaction.query(`${DOCTOR_PROFILE_SELECT}
       WHERE profile.user_id=$1 FOR SHARE OF doctor`, [userId])).rows[0];
     if (!doctor) throw new HttpError(404, 'Doctor profile not found.');
-    if (details.available && doctor.verification_status !== 'VERIFIED') {
+    if ((details.available || details.bookingStart) && doctor.verification_status !== 'VERIFIED') {
       throw new HttpError(403, 'Only verified doctors can be available today.', { code: 'DOCTOR_NOT_VERIFIED' });
     }
     if (!doctor.practice_timezone) {
       throw new HttpError(400, 'Save a practice time zone in your professional profile first.');
     }
-    if (details.available && !profileReady(doctor)) {
+    if ((details.available || details.bookingStart) && !profileReady(doctor)) {
       throw new HttpError(400, 'Complete your professional profile before enabling availability.');
     }
     const localDate = localDateForTimezone(doctor.practice_timezone, at);
@@ -133,17 +136,22 @@ export async function saveTodayAvailability(userId, details, database = pool, at
         { code: 'AVAILABILITY_DATE_CHANGED' });
     }
     const result = await transaction.query(`INSERT INTO public.doctor_daily_availability
-      (doctor_id, local_date, practice_timezone, available, max_patients, consultation_start, consultation_end)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      (doctor_id, local_date, practice_timezone, available, max_patients, consultation_start, consultation_end,
+       booking_start, booking_end)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
       ON CONFLICT (doctor_id, local_date) DO UPDATE SET
         practice_timezone=EXCLUDED.practice_timezone, available=EXCLUDED.available,
         max_patients=EXCLUDED.max_patients, consultation_start=EXCLUDED.consultation_start,
-        consultation_end=EXCLUDED.consultation_end
+        consultation_end=EXCLUDED.consultation_end,
+        booking_start=EXCLUDED.booking_start, booking_end=EXCLUDED.booking_end
       RETURNING doctor_id, local_date::text AS local_date, practice_timezone, available,
         max_patients, to_char(consultation_start,'HH24:MI') AS consultation_start,
-        to_char(consultation_end,'HH24:MI') AS consultation_end, updated_at`,
+        to_char(consultation_end,'HH24:MI') AS consultation_end,
+        to_char(booking_start,'HH24:MI') AS booking_start,
+        to_char(booking_end,'HH24:MI') AS booking_end, updated_at`,
     [doctor.id, localDate, doctor.practice_timezone, details.available,
-      details.maxPatients, details.consultationStart, details.consultationEnd]);
+      details.maxPatients, details.consultationStart, details.consultationEnd,
+      details.bookingStart, details.bookingEnd]);
     const activeBookings = (await transaction.query(`SELECT count(*)::int AS total
         FROM public.appointments WHERE doctor_id=$1 AND local_date=$2 AND status='BOOKED'`,
     [doctor.id, localDate])).rows[0].total;

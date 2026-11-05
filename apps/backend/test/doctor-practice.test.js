@@ -63,7 +63,7 @@ test('doctor profile and chamber-date availability persist and stay owned and ve
     assert.ok(options.data.data.countries.some(country => country.code === 'BD'));
     assert.ok(options.data.data.timezonesByCountry.BD.includes('Asia/Dhaka'));
     assert.equal((await request('PUT', '/api/doctors/availability/today', {
-      available: true, max_patients: 10, consultation_start: '09:00', consultation_end: '17:00',
+      available: true, max_patients: 10, consultation_start: '09:00', consultation_end: '17:00', booking_start: '08:00', booking_end: '11:00',
     }, first.token)).status, 403);
     for (const invalid of [
       { qualifications: '' }, { years_experience: -1 }, { years_experience: 2.5 },
@@ -88,7 +88,7 @@ test('doctor profile and chamber-date availability persist and stay owned and ve
     await verifyEntity({ id: first.doctor.id, entityType: 'DOCTOR', status: 'VERIFIED', adminUserId: operator.id });
     await verifyEntity({ id: incomplete.doctor.id, entityType: 'DOCTOR', status: 'VERIFIED', adminUserId: operator.id });
     assert.equal((await request('PUT', '/api/doctors/availability/today', {
-      available: true, max_patients: 10, consultation_start: '09:00', consultation_end: '17:00',
+      available: true, max_patients: 10, consultation_start: '09:00', consultation_end: '17:00', booking_start: '08:00', booking_end: '11:00',
     }, incomplete.token)).status, 400);
     await verifyEntity({ id: second.doctor.id, entityType: 'DOCTOR', status: 'REJECTED', adminUserId: operator.id });
     const today = (await request('GET', '/api/doctors/availability/today', null, newToken)).data.data.availability;
@@ -96,22 +96,29 @@ test('doctor profile and chamber-date availability persist and stay owned and ve
     assert.match(today.local_date, /^\d{4}-\d{2}-\d{2}$/);
     assert.equal((await request('PUT', '/api/doctors/availability/today', {
       local_date: today.local_date, available: true, max_patients: 101,
-      consultation_start: '09:00', consultation_end: '17:00',
+      consultation_start: '09:00', consultation_end: '17:00', booking_start: '08:00', booking_end: '11:00',
     }, newToken)).status, 400);
     assert.equal((await request('PUT', '/api/doctors/availability/today', {
       local_date: today.local_date, available: true, max_patients: 10,
-      consultation_start: '18:00', consultation_end: '17:00',
+      consultation_start: '18:00', consultation_end: '17:00', booking_start: '08:00', booking_end: '11:00',
     }, newToken)).status, 400);
+    for (const [booking_start, booking_end] of [['11:00', '08:00'], ['08:00', null], ['25:00', '26:00']]) {
+      assert.equal((await request('PUT', '/api/doctors/availability/today', {
+        local_date: today.local_date, available: true, max_patients: 10,
+        consultation_start: '09:00', consultation_end: '17:00', booking_start, booking_end,
+      }, newToken)).status, 400);
+    }
     assert.equal((await request('PUT', '/api/doctors/availability/today', {
       local_date: '2000-01-01', available: true, max_patients: 10,
-      consultation_start: '09:00', consultation_end: '17:00',
+      consultation_start: '09:00', consultation_end: '17:00', booking_start: '08:00', booking_end: '11:00',
     }, newToken)).status, 409);
     const available = await request('PUT', '/api/doctors/availability/today', {
       local_date: today.local_date, available: true, max_patients: 12,
-      consultation_start: '10:00', consultation_end: '16:00',
+      consultation_start: '10:00', consultation_end: '16:00', booking_start: '08:00', booking_end: '11:00',
     }, newToken);
     assert.equal(available.status, 200, JSON.stringify(available.data));
     assert.equal(available.data.data.availability.max_patients, 12);
+    assert.equal(available.data.data.availability.booking_start, '08:00');
     assert.equal((await request('GET', '/api/doctors/availability/today', null, newToken)).data.data.availability.available, true);
     assert.equal((await request('GET', '/api/doctors/availability/today', null, second.token)).data.data.availability.configured, false);
     const tomorrow = await getTodayAvailability(users[0], undefined, new Date(Date.now() + 86400000));
@@ -121,11 +128,11 @@ test('doctor profile and chamber-date availability persist and stay owned and ve
       available: true, maxPatients: 12, consultationStart: '10:00', consultationEnd: '16:00',
     }, undefined, new Date(Date.now() + 86400000)), error => error.statusCode === 409);
     assert.equal((await request('PUT', '/api/doctors/availability/today', {
-      available: true, max_patients: 10, consultation_start: '09:00', consultation_end: '17:00',
+      available: true, max_patients: 10, consultation_start: '09:00', consultation_end: '17:00', booking_start: '08:00', booking_end: '11:00',
     }, second.token)).status, 403);
     const unavailable = await request('PUT', '/api/doctors/availability/today', {
       local_date: today.local_date, available: false, max_patients: 12,
-      consultation_start: '10:00', consultation_end: '16:00',
+      consultation_start: '10:00', consultation_end: '16:00', booking_start: '08:00', booking_end: '11:00',
     }, newToken);
     assert.equal(unavailable.status, 200);
     assert.equal(unavailable.data.data.availability.available, false);
