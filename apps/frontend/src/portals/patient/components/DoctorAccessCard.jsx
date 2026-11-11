@@ -81,7 +81,7 @@ export function DoctorAccessCard({ language = 'en', onChanged }) {
           {availableDoctors.map(doctor => <option key={doctor.id} value={doctor.id}>{doctor.full_name} · {doctor.specialization}</option>)}
         </select>
         <Button disabled={!doctorId || busy} onClick={grant}>{text.grant}</Button>
-      </div> : <p className="mt-5 text-sm text-ink-500">{doctors.length ? text.none : text.empty}</p>}
+      </div> : current.length === 0 ? <p className="mt-5 text-sm text-ink-500">{doctors.length ? text.none : text.empty}</p> : null}
       <h3 className="mt-6 border-t pt-4 font-bold">{text.title}</h3>
       {current.length ? <ul className="mt-3 space-y-2">{current.map(session => <li key={session.id}
         className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-canvas p-3">

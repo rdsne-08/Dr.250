@@ -17,7 +17,13 @@ The screenshots below show the running application with fictional accounts and m
 
 | Medical history | Doctor authorization | Prescriptions |
 | --- | --- | --- |
-| ![Fictional medical record](docs/screenshots/medical-history.jpg) | ![Active doctor grant with revoke control](docs/screenshots/doctor-access.jpg) | ![Fictional prescription in patient history](docs/screenshots/prescriptions.jpg) |
+| ![Fictional medical record](docs/screenshots/medical-history.jpg) | ![Active doctor grant with revoke control](docs/screenshots/doctor-access.png) | ![Fictional prescription in patient history](docs/screenshots/prescriptions.jpg) |
+
+| Patient appointment history | Doctor's daily queue | Admin doctor review |
+| --- | --- | --- |
+| ![Confirmed and cancelled fictional appointments](docs/screenshots/patient-appointment.png) | ![Doctor queue after a completed fictional consultation](docs/screenshots/doctor-todays-queue.png) | ![Admin doctor verification screen](docs/screenshots/admin-verification.png) |
+
+![Completed fictional visit with its prescription](docs/screenshots/patient-completed-visit.png)
 
 ## Run locally
 
@@ -34,6 +40,8 @@ Requirements: Node.js 20+, PostgreSQL 16, and npm. Copy `.env.example` to `.env`
 | `AUTH_INTEGRATION_URL`, `DR250_DISPOSABLE_URL` | Test-only, loopback `dr250_release_*` database URLs |
 
 For production, provide a persistent PostgreSQL service and an HTTPS backend host separately from the static frontend. The backend Docker image runs forward-only migrations at startup. Configure database credentials and other secrets in the hosting environment, and set `CORS_ORIGIN` to the deployed frontend origin. A browser cannot call a local Docker address from a public Vercel site.
+
+See [production deployment preparation](docs/deployment.md) for the existing Docker and Vite configuration and the required hosting inputs.
 
 ```bash
 cd apps/backend
@@ -213,5 +221,7 @@ Local passwords are stored as hashes in the private schema. Protected API routes
 ## Verification and future scope
 
 On 5 November 2026, the verified backup was restored into a disposable database and Migration 022 passed there before being applied to the existing `sasthosetu` database. The migration ledger records it once; users (14), patients (8), doctors (4), and medical records (4) matched the pre-migration baseline. Backend isolated tests passed 68 with 6 database-dependent skips; selected disposable database integration tests passed 12/12. Frontend tests passed 15/15, ESLint passed, and the production build succeeded. Browser end-to-end and public deployment status must be reported separately rather than inferred from these tests.
+
+On 11 November 2026, the remaining local browser workflow passed against the disposable `dr250_release_browser_clean` database: booking, queue placement, capacity exhaustion, cancellation and rebooking, care request and acceptance, authorized history, prescription persistence, consultation completion, direct consent, and revocation. The doctor received HTTP 403 for patient history after revocation and for the completed consultation. The local browser run does not verify a public deployment.
 
 Future work can include operational monitoring, accessibility review, and scheduled backup verification after a production host is configured. These are outside the current patient, doctor, and admin release scope.
