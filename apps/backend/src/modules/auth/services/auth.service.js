@@ -6,6 +6,8 @@ import { HttpError } from '../../../middleware/http-error.js';
 import { createLocalSession, hashPassword, isLocalToken, revokeLocalSession, verifyPassword } from './local-auth.service.js';
 import { createProfile, findProfileByUserId } from './profile.service.js';
 
+const dummyPasswordHash = await hashPassword(randomUUID());
+
 function loginError(error) {
   if (error?.status === 429) {
     return new HttpError(429, 'Too many login attempts. Please try again later.');
@@ -39,13 +41,8 @@ export async function registerUser({
     });
   } catch (error) {
     if (error?.code === '23505') {
-      const constraint = error?.cause?.constraint ?? error?.constraint;
-      if (constraint === 'doctors_license_number_key') {
-        throw new HttpError(409, 'This medical license number is already registered.', {
-          code: 'LICENSE_ALREADY_REGISTERED',
-        });
-      }
-      throw new HttpError(409, 'An account with this email already exists.');
+      // Do not disclose whether an email or medical license is registered.
+      return null;
     }
     console.error('Registration persistence failed.', { code: error?.code ?? 'UNKNOWN' });
     throw new HttpError(503, 'Account creation is temporarily unavailable. Please try again later.');
@@ -64,7 +61,10 @@ export async function loginUser({ email, password }) {
   } catch {
     throw new HttpError(503, 'Sign-in is temporarily unavailable. Please try again later.');
   }
-  if (!account) throw new HttpError(401, 'Invalid email or password.');
+  if (!account) {
+    await verifyPassword(password, dummyPasswordHash);
+    throw new HttpError(401, 'Invalid email or password.');
+  }
   if (account.password_hash) {
     if (!(await verifyPassword(password, account.password_hash))) {
       throw new HttpError(401, 'Invalid email or password.');

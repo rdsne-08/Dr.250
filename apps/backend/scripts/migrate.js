@@ -19,7 +19,7 @@ if (!databaseUrl) throw new Error('DATABASE_URL is required.');
 const { Client } = pg;
 const client = new Client({
   connectionString: databaseUrl,
-  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: true } : false,
 });
 
 const migrationArtifacts = new Map([

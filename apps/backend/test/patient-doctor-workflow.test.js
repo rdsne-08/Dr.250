@@ -38,10 +38,10 @@ test('patient grant allows history reads, while prescribing requires a consultat
     const registered = await request('POST', '/api/auth/register', {
       email, password, full_name: `${role} Workflow`, role, ...details,
     });
-    assert.equal(registered.status, 201, JSON.stringify(registered.data));
-    users.push(registered.data.data.user.user_id);
+    assert.equal(registered.status, 202, JSON.stringify(registered.data));
     const loggedIn = await request('POST', '/api/auth/login', { email, password });
     assert.equal(loggedIn.status, 200, JSON.stringify(loggedIn.data));
+    users.push(loggedIn.data.data.user.user_id);
     return loggedIn.data.data.access_token;
   }
   try {

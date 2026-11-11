@@ -37,10 +37,10 @@ test('Admin reviews doctors, decisions persist, and changed status blocks existi
     const email = `${name}.${suffix}@example.invalid`;
     const created = await request('POST', '/api/auth/register', { email, password,
       full_name: name, role, ...(license ? { specialization: 'General', license_number: license } : {}) });
-    assert.equal(created.status, 201, JSON.stringify(created.data));
-    ids.push(created.data.data.user.user_id);
+    assert.equal(created.status, 202, JSON.stringify(created.data));
     const login = await request('POST', '/api/auth/login', { email, password });
     assert.equal(login.status, 200);
+    ids.push(login.data.data.user.user_id);
     return login.data.data.access_token;
   }
   try {

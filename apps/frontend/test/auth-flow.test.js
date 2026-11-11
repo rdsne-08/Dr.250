@@ -198,20 +198,20 @@ test('invalid doctor license is rejected before registration reaches the API', a
   assert.equal(requests, 0);
 });
 
-test('registration success followed by sign-in failure reports that the account was created', async () => {
+test('registration acceptance followed by sign-in failure does not disclose account existence', async () => {
   const paths = [];
   globalThis.fetch = async (url) => {
     const path = new URL(url).pathname;
     paths.push(path);
     return new Response(JSON.stringify(path === '/api/auth/register'
-      ? { success: true, data: { user: { role: 'DOCTOR' } } }
+      ? { success: true, message: 'Registration accepted.' }
       : { success: false, message: 'Sign-in temporarily unavailable.' }),
-    { status: path === '/api/auth/register' ? 201 : 503 });
+    { status: path === '/api/auth/register' ? 202 : 503 });
   };
   await assert.rejects(authService.register({ name: 'Dr. Example', email: 'doctor@example.com',
     password: 'password123', confirmPassword: 'password123', role: 'DOCTOR',
     specialization: 'General', licenseNumber: '12345678' }),
-  error => error.code === 'ACCOUNT_CREATED_SIGN_IN_REQUIRED');
+  error => error.code === 'REGISTRATION_REJECTED');
   assert.deepEqual(paths, ['/api/auth/register', '/api/auth/login']);
 });
 

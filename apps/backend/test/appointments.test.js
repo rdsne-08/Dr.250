@@ -41,10 +41,11 @@ test('same-day booking enforces identity, country, window, capacity and permanen
       ...(role === 'DOCTOR' ? { specialization: 'General medicine',
         license_number: String(suffix + users.length).slice(-9) } : {}) };
     const registration = await request('POST', '/api/auth/register', body);
-    assert.equal(registration.status, 201, JSON.stringify(registration.data));
-    const id = registration.data.data.user.user_id;
+    assert.equal(registration.status, 202, JSON.stringify(registration.data));
+    const signedIn = (await request('POST', '/api/auth/login', { email, password })).data.data;
+    const id = signedIn.user.user_id;
     users.push(id);
-    const token = (await request('POST', '/api/auth/login', { email, password })).data.data.access_token;
+    const token = signedIn.access_token;
     const endpoint = role === 'DOCTOR' ? '/api/doctors/profile' : '/api/patients/profile';
     const profile = (await request('GET', endpoint, null, token)).data.data[role === 'DOCTOR' ? 'doctor' : 'patient'];
     return { id, token, profile };

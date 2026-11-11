@@ -157,8 +157,8 @@ async function register(details) {
       role: details.role,
     });
   } catch {
-    throw new AuthServiceError('Account created. Please sign in with your new credentials.',
-      'ACCOUNT_CREATED_SIGN_IN_REQUIRED');
+    throw new AuthServiceError('Registration could not be completed or sign-in is unavailable. Check your details and try again later.',
+      'REGISTRATION_REJECTED');
   }
 }
 

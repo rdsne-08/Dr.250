@@ -36,9 +36,10 @@ test('doctor profile and chamber-date availability persist and stay owned and ve
       email, password, full_name: name, role: 'DOCTOR',
       specialization: 'General medicine', license_number: license,
     });
-    assert.equal(registration.status, 201, JSON.stringify(registration.data));
-    users.push(registration.data.data.user.user_id);
-    const token = (await request('POST', '/api/auth/login', { email, password })).data.data.access_token;
+    assert.equal(registration.status, 202, JSON.stringify(registration.data));
+    const signedIn = (await request('POST', '/api/auth/login', { email, password })).data.data;
+    users.push(signedIn.user.user_id);
+    const token = signedIn.access_token;
     const profile = (await request('GET', '/api/doctors/profile', null, token)).data.data.doctor;
     return { email, token, doctor: profile };
   }

@@ -2,11 +2,9 @@ import { loginUser, logoutUser, registerUser } from '../services/auth.service.js
 import { sendSuccess } from '../../../middleware/response.js';
 
 export async function register(request, response) {
-  const profile = await registerUser(request.validatedBody);
-
-  sendSuccess(response, {
-    user: profile,
-  }, 201);
+  await registerUser(request.validatedBody);
+  response.status(202).json({ success: true,
+    message: 'If these details are eligible, registration has been accepted. Sign in to continue.' });
 }
 
 export async function login(request, response) {
