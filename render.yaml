@@ -20,7 +20,7 @@ services:
       - key: TRUST_PROXY_HOPS
         value: "1"
       - key: CORS_ORIGIN
-        value: https://dr250-frontend.vercel.app
+        value: https://dr250-frontend-hi-9b5d.vercel.app
 
 databases:
   - name: dr250-demo-postgres
