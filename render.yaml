@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: dr250-demo-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./apps/backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health/database
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dr250-demo-postgres
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "false"
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: CORS_ORIGIN
+        value: https://dr250-frontend.vercel.app
+
+databases:
+  - name: dr250-demo-postgres
+    databaseName: dr250_demo_postgres
+    user: dr250_demo_postgres_user
+    plan: free
+    region: singapore
+    postgresMajorVersion: "16"
+    ipAllowList: []
