@@ -1,6 +1,6 @@
 # Public deployment preparation
 
-Status: **preparation only**. Do not create a hosted service, connect a database, copy local records, or publish the site until the remaining security and cost decisions below are approved. The intended data set contains synthetic demonstration accounts only. Never connect the local `sasthosetu` database or `dr250_release_*` browser database to a public service.
+Status: **synthetic public demonstration deployed**. The preparation and operational notes below record the release setup and constraints; references to pre-deployment approval are historical. The public site uses synthetic demonstration accounts only. Never connect the local `sasthosetu` database or a `dr250_release_*` test database to a public service. Current verification results are recorded in the [project README](../README.md#testing-and-deployment).
 
 ## Architecture and repository settings
 
